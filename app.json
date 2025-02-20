@@ -1,10 +1,11 @@
 {
   "expo": {
     "name": "nixonbit-app",
-    "slug": "nixonbit-app",
+    "slug": "nixonbitapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "myapp",
+    "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
     "ios": {
@@ -13,7 +14,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.cyberne7work_dev.nixonbitapp"
@@ -23,7 +24,18 @@
       "output": "static",
       "favicon": "./assets/images/icon.png"
     },
-
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ]
+    ],
     "assetBundlePatterns": ["assets/fonts/*", "assets/images/*"],
     "experiments": {
       "typedRoutes": true
@@ -33,8 +45,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "925338ba-f632-4365-a748-fd671d363cfd"
+        "projectId": "a5f96908-c2e6-42bb-9447-8b645f538360"
       }
-    }
+    },
+    "owner": "cyberne7work_dev"
   }
 }

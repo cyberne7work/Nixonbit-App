@@ -33,13 +33,12 @@ export const CustomTextInput = ({
       <View
         style={[
           styles.inputContainer,
-          style,
           errorMessage && styles.errorBorder,
         ]}
       >
 
         <TextInput
-          style={styles.input}
+          style={[styles.input, style]}
           placeholder={placeholder}
           placeholderTextColor="#aaa"
           secureTextEntry={isPasswordHidden}
@@ -87,7 +86,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    // borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 8,
     paddingHorizontal: 12,

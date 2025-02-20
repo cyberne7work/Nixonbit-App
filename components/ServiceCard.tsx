@@ -8,11 +8,10 @@ const ServiceCard = ({
   description,
   price,
   availability,
+  onPress,
 }) => {
   return (
-    <TouchableOpacity
-      style={[styles.card]}
-    >
+    <TouchableOpacity style={[styles.card]} onPress={onPress}>
       <MaterialIcons
         name={iconName}
         size={25}
@@ -43,7 +42,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     fontFamily: "Exo-Regular",
-    color:"#002045"
+    color: "#002045",
   },
   description: {
     fontSize: 12,

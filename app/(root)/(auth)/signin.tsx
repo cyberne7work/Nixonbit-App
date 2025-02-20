@@ -121,6 +121,7 @@ export default function SignIn() {
     } catch (err) {
       // See https://clerk.com/docs/custom-flows/error-handling
       // for more info on error handling
+      console.log(err);
       console.error(JSON.stringify(err, null, 2));
     }
   }, []);
@@ -134,16 +135,16 @@ export default function SignIn() {
         <CustomTextInput
           label={"Email"}
           style={styles.input}
-          placeholder="example@domain.com"
+          placeholder='example@domain.com'
           value={email}
           onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
+          keyboardType='email-address'
+          autoCapitalize='none'
         />
         <CustomTextInput
           label={"Password"}
           style={styles.input}
-          placeholder="Enter your password"
+          placeholder='Enter your password'
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -162,7 +163,7 @@ export default function SignIn() {
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color='#fff' />
           ) : (
             <Text style={styles.signInButtonText}>Sign In</Text>
           )}
@@ -179,6 +180,7 @@ export default function SignIn() {
         <OauthFacebook />
 
         {/* Sign In with Google */}
+
         <OauthGoogle />
 
         {/* Sign-Up Redirect */}

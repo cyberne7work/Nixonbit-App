@@ -3,6 +3,7 @@ import React from "react";
 import { Platform } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import Entypo from "react-native-vector-icons/Entypo";
 
 export default function TabLayout() {
   return (
@@ -22,7 +23,6 @@ export default function TabLayout() {
             shadowRadius: 4,
             elevation: 5,
             paddingTop: 5,
-
           },
           default: {
             position: "absolute",
@@ -57,14 +57,31 @@ export default function TabLayout() {
         options={{
           title: "Explore",
           tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons name="compass-outline" size={26} color={color} />
+            <MaterialCommunityIcons
+              name="compass-outline"
+              size={26}
+              color={color}
+            />
           ),
         }}
       />
       <Tabs.Screen
-        name="services"
+        name="ai"
         options={{
-          title: "Services",
+          title: "Jarvis",
+          tabBarIcon: ({ color }) => (
+            <Entypo
+              name="500px"
+              size={26}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="servicesnew"
+        options={{
+          title: "Services New",
           tabBarIcon: ({ color }) => (
             <MaterialIcons name="work-outline" size={26} color={color} />
           ),
@@ -75,7 +92,11 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color }) => (
-            <MaterialCommunityIcons name="account-circle" size={26} color={color} />
+            <MaterialCommunityIcons
+              name="account-circle"
+              size={26}
+              color={color}
+            />
           ),
         }}
       />

@@ -104,6 +104,7 @@ export default function Signup() {
           placeholder="Enter your full name"
           value={name}
           onChangeText={setName}
+          autoCapitalize="none"
         />
         <CustomTextInput
           label={"Your Email"}
@@ -122,6 +123,7 @@ export default function Signup() {
           onChangeText={setPassword}
           secureTextEntry
           showToggleIcon
+          autoCapitalize="none"
         />
 
         {/* Signup Button */}

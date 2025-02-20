@@ -77,7 +77,10 @@ export default function ServiceScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        <Text style={styles.header}>Service</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <MaterialIcons name="arrow-back" size={24} color="#002045" />
+        </TouchableOpacity>
+        <Text style={styles.header}>Provider</Text>
       </View>
       <View>
         <CustomTextInput
@@ -173,5 +176,11 @@ const styles = StyleSheet.create({
     color: "#002045",
     fontFamily: "Exo-Regular",
     marginLeft: 10, // Add spacing between the icon and text
+  },
+  backButton: {
+    position: "absolute",
+    left: 10,
+    top: "50%",
+    transform: [{ translateY: -12 }], // Vertically center the icon
   },
 });

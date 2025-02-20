@@ -133,51 +133,6 @@ const servicesData = [
   },
 ];
 
-const eventsData = [
-  {
-    id: "1",
-    date: "MAR 05",
-    eventTitle: "Maroon 5",
-    location: "Recife, Brazil",
-    imageUrl: "https://via.placeholder.com/150", // Replace with actual image URL
-  },
-  {
-    id: "2",
-    date: "APR 12",
-    eventTitle: "Coldplay",
-    location: "São Paulo, Brazil",
-    imageUrl: "https://via.placeholder.com/150", // Replace with actual image URL
-  },
-  {
-    id: "3",
-    date: "MAY 18",
-    eventTitle: "Ed Sheeran",
-    location: "Rio de Janeiro, Brazil",
-    imageUrl: "https://via.placeholder.com/150", // Replace with actual image URL
-  },
-  {
-    id: "4",
-    date: "JUN 21",
-    eventTitle: "Adele",
-    location: "London, UK",
-    imageUrl: "https://via.placeholder.com/150", // Replace with actual image URL
-  },
-  {
-    id: "5",
-    date: "JUL 15",
-    eventTitle: "Taylor Swift",
-    location: "New York, USA",
-    imageUrl: "https://via.placeholder.com/150", // Replace with actual image URL
-  },
-  {
-    id: "6",
-    date: "AUG 10",
-    eventTitle: "The Weeknd",
-    location: "Toronto, Canada",
-    imageUrl: "https://via.placeholder.com/150", // Replace with actual image URL
-  },
-];
-
 const mixedData = [
   {
     id: "1",
@@ -298,6 +253,7 @@ export default function HomeScreen() {
               value={searchValue}
               onChangeText={setSearchValue}
               style={styles.search}
+              autoCapitalize="none"
             />
 
             <View>
@@ -379,7 +335,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   headerContainer: {
     marginLeft: 5,
-    marginTop: 10,
+    marginTop: 20,
   },
 
   mainHeader: {
