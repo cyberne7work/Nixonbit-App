@@ -45,8 +45,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     // elevation: 2,
     marginVertical: 8,
-    marginHorizontal: 16,
-    // position: "relative",
+    marginRight:10
   },
   dateBadge: {
     position: "absolute",

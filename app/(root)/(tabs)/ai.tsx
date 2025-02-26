@@ -51,6 +51,10 @@ export default function Ai() {
             source={require("../../../assets/images/nixonbiticon.png")}
             style={{ width: 300, height: 200, marginBottom: 10 }}
           /> */}
+             <Image
+                  source={require("../../../assets/images/nixonbiticon.png")}
+                  style={styles.logo}
+                />
           <Text style={styles.mainText}>
             Hi User, I am JARVIS, Your personal AI assistant{" "}
           </Text>
@@ -117,7 +121,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
+    bottom: 100,
   },
   buttomContainer: {
     flex: 1,
@@ -161,5 +165,10 @@ const styles = StyleSheet.create({
     width: "10%",
     justifyContent: "center",
     alignItems: "center",
+  },
+  logo: {
+    width: 150,
+    height: 150,
+    resizeMode: "contain",
   },
 });

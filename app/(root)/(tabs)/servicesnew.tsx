@@ -32,22 +32,13 @@ const servicesData = [
     navigation: "/(services)/incident-reporting-screen",
   },
   {
-    id: "3",
-    name: "Safe Routes",
-    iconName: "directions-run",
-    description:
-      "Find safer routes for walking, running, or cycling using real-time and crowd-sourced data.",
-    category: "Navigation",
-    navigation: "/(services)/servicelist-screen",
-  },
-  {
     id: "4",
     name: "Community Watch",
     iconName: "groups",
     description:
       "Share and access verified safety information within your community for a collective security network.",
     category: "Safety & Security",
-    navigation: "/(services)/servicelist-screen",
+    navigation: "/(services)/community-watch-screen",
   },
   {
     id: "5",
@@ -64,7 +55,7 @@ const servicesData = [
     description:
       "Explore public facilities like parks, libraries, and museums with hours, events, and accessibility info.",
     category: "Local Services",
-    navigation: "/(services)/services",
+    navigation: "/(services)/public-places-screen",
   },
   {
     id: "7",
@@ -91,7 +82,7 @@ const servicesData = [
     description:
       "Stay updated on local events, festivals, and public meetings with safety precautions and crowd management tips.",
     category: "Events",
-    navigation: "/(services)/servicelist-screen",
+    navigation: "/(services)/event-calendar-screen",
   },
   {
     id: "10",
@@ -100,7 +91,7 @@ const servicesData = [
     description:
       "Plan routes and find services with accessibility options for people with disabilities.",
     category: "Accessibility",
-    navigation: "/(services)/servicelist-screen",
+    navigation: "/(services)/accessibility-options-screen",
   },
   {
     id: "11",
@@ -127,7 +118,7 @@ const servicesData = [
     description:
       "Find nearby gyms and fitness centers with reviews and membership options.",
     category: "Health & Fitness",
-    navigation: "/(services)/servicelist-screen",
+    navigation: "/(services)/fitness-centers-screen",
   },
   {
     id: "14",
@@ -137,15 +128,6 @@ const servicesData = [
       "Find nearby hospitals, clinics, and pharmacies with emergency contacts.",
     category: "Healthcare",
     navigation: "/(services)/medical-assistance-screen",
-  },
-  {
-    id: "15",
-    name: "Food Delivery",
-    iconName: "local-dining",
-    description:
-      "Order from local restaurants and get your favorite meals delivered to your doorstep.",
-    category: "Food & Dining",
-    navigation: "/(services)/servicelist-screen",
   },
   {
     id: "16",
@@ -171,7 +153,7 @@ const servicesData = [
     iconName: "pets",
     description: "Find pet grooming, boarding, and veterinary services nearby.",
     category: "Pet Care",
-    navigation: "/(services)/servicelist-screen",
+    navigation: "/(services)/pet-services-screen",
   },
   {
     id: "19",
@@ -180,7 +162,7 @@ const servicesData = [
     description:
       "Join community initiatives and volunteer programs to make a difference.",
     category: "Community Services",
-    navigation: "/(services)/servicelist-screen",
+    navigation: "/(services)/volunteer-opportunities-screen",
   },
   {
     id: "20",
@@ -189,7 +171,7 @@ const servicesData = [
     description:
       "Discover discounts and offers from local stores and shopping malls.",
     category: "Retail",
-    navigation: "/(services)/servicelist-screen",
+    navigation: "/(services)/shopping-deals-screen",
   },
 ];
 

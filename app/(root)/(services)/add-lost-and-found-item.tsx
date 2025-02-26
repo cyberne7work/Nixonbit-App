@@ -87,7 +87,7 @@ export default function AddLostFoundItemScreen() {
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <MaterialIcons name="arrow-back" size={24} color="#002045" />
+          <MaterialIcons name='arrow-back' size={24} color='#002045' />
         </TouchableOpacity>
         <Text style={styles.header}>Lost and Found</Text>
       </View>
@@ -103,7 +103,7 @@ export default function AddLostFoundItemScreen() {
             />
           ) : (
             <View style={styles.placeholder}>
-              <MaterialIcons name="image" size={64} color="#ccc" />
+              <MaterialIcons name='image' size={64} color='#ccc' />
               <Text style={styles.placeholderText}>No Image Added</Text>
             </View>
           )}
@@ -132,24 +132,24 @@ export default function AddLostFoundItemScreen() {
         {/* Input Fields */}
         <CustomTextInput
           label={"Title"}
-          placeholder="Enter item title"
+          placeholder='Enter item title'
           value={newItem.title}
           onChangeText={(text) => setNewItem({ ...newItem, title: text })}
           autoCapitalize={"none"}
         />
         <CustomTextInput
           label={"Description"}
-          placeholder="Enter description"
+          placeholder='Enter description'
           value={newItem.description}
           onChangeText={(text) => setNewItem({ ...newItem, description: text })}
           autoCapitalize={"none"}
         />
         <CustomTextInput
           label={"Contact Number"}
-          placeholder="Enter contact number"
+          placeholder='Enter contact number'
           value={newItem.contact}
           onChangeText={(text) => setNewItem({ ...newItem, contact: text })}
-          keyboardType="phone-pad"
+          keyboardType='phone-pad'
           autoCapitalize={"none"}
         />
 
@@ -158,11 +158,11 @@ export default function AddLostFoundItemScreen() {
           style={styles.uploadButton}
           onPress={handleImageUpload}
         >
-          <MaterialIcons name="add-a-photo" size={24} color="#002045" />
+          <MaterialIcons name='add-a-photo' size={24} color='#002045' />
           <Text style={styles.uploadText}>Upload from Gallery</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.uploadButton} onPress={handleTakePhoto}>
-          <MaterialIcons name="camera-alt" size={24} color="#002045" />
+          <MaterialIcons name='camera-alt' size={24} color='#002045' />
           <Text style={styles.uploadText}>Take a Photo</Text>
         </TouchableOpacity>
 
@@ -272,5 +272,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Exo-Regular",
   },
-  
 });

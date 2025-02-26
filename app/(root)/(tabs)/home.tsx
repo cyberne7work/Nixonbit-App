@@ -3,7 +3,7 @@ import EventCard from "@/components/EventCard";
 import ImageSlider from "@/components/ImageSlider";
 import ServiceCard from "@/components/ServiceCard";
 import { useState } from "react";
-
+import { useRouter } from "expo-router"; // Add this import
 import {
   StyleSheet,
   Image,
@@ -14,9 +14,18 @@ import {
   Text,
   TouchableOpacity,
   Alert,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
+// Define TypeScript interface for news data
+interface NewsItem {
+  id: string;
+  headline: string;
+  summary: string;
+  source: string;
+  date?: string; // Optional: added for consistency with detailed view
+  content?: string; // Optional: for detailed view
+}
 const publicImageUrls = [
   // "https://images.unsplash.com/photo-1593642634311-18a8d3fd4031?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800", // A workspace
   "https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800", // A beautiful beach
@@ -216,33 +225,105 @@ const mixedData = [
   },
 ];
 
+// Placeholder data for new sections
+const noticeBoardData = [
+  {
+    id: "1",
+    title: "Road Closure Alert",
+    content: "Main St closed 3/15-3/20 for repairs.",
+    date: "2025-03-14",
+  },
+  {
+    id: "2",
+    title: "Community Meeting",
+    content: "Join us on 3/25 at 7 PM at City Hall.",
+    date: "2025-03-20",
+  },
+];
+
+const advertisementData = [
+  {
+    id: "1",
+    title: "50% Off at TechTrendz",
+    imageUrl:
+      "https://images.unsplash.com/photo-1501785888041-af3ef285b470?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
+    link: "https://techtrendz.com",
+  },
+  {
+    id: "2",
+    title: "Free Coffee at Cafe Mocha",
+    imageUrl:
+      "https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
+    link: "https://cafemocha.com",
+  },
+];
+const newsData: NewsItem[] = [
+  {
+    id: "1",
+    headline: "New Park Opening",
+    summary: "City unveils new park downtown next month.",
+    source: "City News",
+    date: "2025-03-14",
+    content:
+      "The city council has announced the grand opening of a new park in the downtown area, featuring green spaces, playgrounds, and a community garden. The event is scheduled for next month with a ribbon-cutting ceremony.",
+  },
+  {
+    id: "2",
+    headline: "Tech Expo 2025",
+    summary: "Annual tech expo scheduled for April.",
+    source: "Tech Daily",
+    date: "2025-03-20",
+    content:
+      "Tech Expo 2025 will showcase the latest innovations in AI, robotics, and renewable energy. Held annually, this event attracts thousands of tech enthusiasts and industry leaders from around the globe.",
+  },
+  {
+    id: "3",
+    headline: "Local Art Festival",
+    summary: "Art festival to celebrate local talent this weekend.",
+    source: "Art Weekly",
+    date: "2025-03-15",
+    content:
+      "This weekend’s art festival will feature local artists, live performances, and interactive workshops. Don’t miss the chance to explore creativity in your community!",
+  },
+];
+
 export default function HomeScreen() {
   const [searchValue, setSearchValue] = useState("");
   const [showAll, setShowAll] = useState(false);
+  const router = useRouter();
   const displayedData = showAll ? servicesData : servicesData.slice(0, 6);
   const eventPress = () => {
     Alert.alert("Event Selected");
   };
+
+  const handleAdPress = (link: string) => {
+    Linking.openURL(link).catch((err) =>
+      Alert.alert("Error", "Failed to open link: " + err.message)
+    );
+  };
+
   return (
-    <SafeAreaView
-      style={{
-        backgroundColor: "transparent",
-      }}
-    >
+    <SafeAreaView style={{ backgroundColor: "transparent" }}>
       <FlatList
         ListHeaderComponent={
           <View>
             <View style={styles.headerContainer}>
-              <Text style={styles.mainHeader}>
-                Welcome to{" "}
-                <Text
-                  style={{
-                    color: "#3470E4",
-                  }}
-                >
-                  NixonBit!
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Text style={styles.mainHeader}>
+                  Welcome to <Text style={{ color: "#3470E4" }}>NixonBit!</Text>
                 </Text>
-              </Text>
+                <Image
+                  source={require("../../../assets/images/nixonbiticon.png")}
+                  style={styles.logo}
+                />
+              </View>
+
               <Text style={styles.description}>
                 Discover your city, all in one place!
               </Text>
@@ -253,8 +334,105 @@ export default function HomeScreen() {
               value={searchValue}
               onChangeText={setSearchValue}
               style={styles.search}
-              autoCapitalize="none"
+              autoCapitalize='none'
             />
+
+            <View>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push("/(root)/(services)/notice-list-screen")
+                }
+              >
+                <View style={styles.headerButton}>
+                  <Text style={styles.header}>Notice Board</Text>
+                  <Text style={styles.viewAllText}>View All</Text>
+                </View>
+              </TouchableOpacity>
+              <FlatList
+                horizontal
+                data={noticeBoardData}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContent}
+                renderItem={({ item }) => (
+                  // <TouchableOpacity></TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.noticeCard}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(root)/(services)/notice-detailed-screen",
+                        params: { notice: JSON.stringify(item) },
+                      })
+                    }
+                  >
+                    <Text style={styles.noticeTitle}>{item.title}</Text>
+                    <Text style={styles.noticeContent}>{item.content}</Text>
+                    <Text style={styles.noticeDate}>{item.date}</Text>
+                  </TouchableOpacity>
+                )}
+                showsHorizontalScrollIndicator={false}
+              />
+            </View>
+
+            {/* Advertisements Section */}
+            <View>
+              <Text style={styles.header}>Advertisements</Text>
+              <FlatList
+                horizontal
+                data={advertisementData}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContent}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.adCard}
+                    onPress={() => handleAdPress(item.link)}
+                  >
+                    <Image
+                      source={{ uri: item.imageUrl }}
+                      style={styles.adImage}
+                      resizeMode='cover'
+                    />
+                    <Text style={styles.adTitle}>{item.title}</Text>
+                  </TouchableOpacity>
+                )}
+                showsHorizontalScrollIndicator={false}
+              />
+            </View>
+
+            {/* News Section */}
+            <View>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push("/(root)/(services)/news-list-screen")
+                }
+              >
+                <View style={styles.headerButton}>
+                  <Text style={styles.header}>Latest News</Text>
+                  <Text style={styles.viewAllText}>View All</Text>
+                </View>
+              </TouchableOpacity>
+              <FlatList
+                horizontal
+                data={newsData}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContent}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.newsCard}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(root)/(services)/news-detailed-screen",
+                        params: { news: JSON.stringify(item) },
+                      })
+                    }
+                  >
+                    <Text style={styles.newsHeadline}>{item.headline}</Text>
+                    <Text style={styles.newsSummary}>{item.summary}</Text>
+                    <Text style={styles.newsSource}>Source: {item.source}</Text>
+                  </TouchableOpacity>
+                )}
+                showsHorizontalScrollIndicator={false}
+              />
+            </View>
 
             <View>
               <Text style={styles.header}>Trending in City</Text>
@@ -273,13 +451,11 @@ export default function HomeScreen() {
                   />
                 )}
                 pagingEnabled
-                snapToAlignment="center"
-                snapToInterval={300} // Set this value based on the card width + margin
-                decelerationRate="fast"
+                snapToAlignment='center'
+                snapToInterval={300}
+                decelerationRate='fast'
                 showsHorizontalScrollIndicator={false}
-                style={{
-                  marginBottom: 20,
-                }}
+                style={{ marginBottom: 20 }}
               />
             </View>
             <View>
@@ -291,7 +467,7 @@ export default function HomeScreen() {
         keyExtractor={(item) => item.id}
         numColumns={3}
         columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.listContent} // Apply styles here
+        contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <ServiceCard
             iconName={item.iconName}
@@ -301,9 +477,7 @@ export default function HomeScreen() {
             availability={item.availability}
           />
         )}
-        ListFooterComponentStyle={{
-          paddingBottom: 100,
-        }}
+        ListFooterComponentStyle={{ paddingBottom: 100 }}
         ListFooterComponent={
           <View>
             {!showAll ? (
@@ -323,8 +497,8 @@ export default function HomeScreen() {
             )}
             <View>
               <Text style={styles.header}>City Gallery</Text>
+              <ImageSlider images={publicImageUrls} />
             </View>
-            <ImageSlider images={publicImageUrls} />
           </View>
         }
       />
@@ -335,12 +509,12 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   headerContainer: {
     marginLeft: 5,
-    marginTop: 20,
+    // marginTop: 20,
   },
-
   mainHeader: {
     fontSize: 24,
     fontFamily: "Exo-Bold",
+    color: "#002045", // Primary color
   },
   description: {
     fontFamily: "Exo-Regular",
@@ -352,59 +526,128 @@ const styles = StyleSheet.create({
     fontFamily: "Exo-Bold",
     marginBottom: 15,
     marginLeft: 5,
-  },
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: "absolute",
+    color: "#002045", // Primary color
   },
   search: {
     marginHorizontal: 5,
-  },
-  card: {
-    padding: 16,
-    marginVertical: 8,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    backgroundColor: "#fff",
-  },
-  serviceName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 8,
   },
   row: {
     justifyContent: "space-between",
     marginBottom: 10,
   },
-  viewAllButton: {
-    alignSelf: "flex-end", // Align the button to the right
-    borderRadius: 4,
-    marginRight: 5, // Add some spacing from the right edge
+  headerButton: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
+  viewAllButton: {
+    alignSelf: "flex-end",
+    borderRadius: 4,
+    marginRight: 5,
+  },
+
   viewAllText: {
-    color: "#3470E4", // Set text color to white for better contrast
+    color: "#3470E4", // Secondary color
     fontSize: 16,
     fontWeight: "bold",
     fontFamily: "Exo-Bold",
   },
   listContent: {
-    // backgroundColor: "red", // Light gray background color
-    // paddingVertical: 16, // Optional padding for better spacing
-    // paddingHorizontal: 8, // Horizontal padding to match the card layout
+    paddingHorizontal: 8,
+  },
+  logo: {
+    width: 50,
+    height: 50,
+    resizeMode: "contain",
+  },
+  // Notice Board Styles
+  noticeCard: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 10,
+    marginRight: 10,
+    width: 250,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    // borderWidth: 1,
+    borderColor: "#3470E4", // Secondary color
+    marginBottom: 10,
+  },
+  noticeTitle: {
+    fontSize: 16,
+    fontFamily: "Exo-Bold",
+    color: "#002045", // Primary color
+    marginBottom: 5,
+  },
+  noticeContent: {
+    fontSize: 14,
+    fontFamily: "Exo-Regular",
+    color: "#666",
+  },
+  noticeDate: {
+    fontSize: 12,
+    fontFamily: "Exo-Regular",
+    color: "#3470E4", // Secondary color
+    marginTop: 5,
+  },
+  // Advertisement Styles
+  adCard: {
+    alignItems: "center",
+    marginRight: 10,
+    width: 300,
+    marginBottom: 10,
+  },
+  adImage: {
+    width: "100%",
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 5,
+    // borderWidth: 1,
+    borderColor: "#002045", // Primary color
+  },
+  adTitle: {
+    fontSize: 14,
+    fontFamily: "Exo-Bold",
+    color: "#3470E4", // Secondary color
+    textAlign: "center",
+  },
+  // News Styles
+  newsCard: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 10,
+    marginRight: 10,
+    width: 250,
+    height: 120,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    // borderWidth: 1,
+    borderColor: "#002045", // Primary color
+    marginBottom: 10,
+  },
+  newsHeadline: {
+    fontSize: 16,
+    fontFamily: "Exo-Bold",
+    color: "#002045", // Primary color
+    marginBottom: 5,
+  },
+  newsSummary: {
+    fontSize: 14,
+    fontFamily: "Exo-Regular",
+    color: "#666",
+  },
+  newsSource: {
+    fontSize: 12,
+    fontFamily: "Exo-Regular",
+    color: "#3470E4", // Secondary color
+    marginTop: 5,
   },
 });
-
 // primary:"#002045"
 // secondary:"#3470E4"
