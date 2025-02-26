@@ -4,8 +4,7 @@ import axios from "axios";
 // IMPORTANT: Do not hardcode API keys in production
 // Use environment variables instead
 const WEATHER_API_KEY =
-  process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY ||
-  "96e3bdd03954c522af747a74310a43e7";
+  process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
 const WEATHER_BASE_URL = "https://api.openweathermap.org/data/3.0/onecall";
 
 // Default coordinates (New Delhi as fallback)
