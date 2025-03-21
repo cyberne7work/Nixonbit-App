@@ -20,6 +20,8 @@ export default function ProfileScreen() {
   const { userId, signOut, isSignedIn } = useAuth();
   const { user } = useUser();
 
+  console.log(`User ${user?.emailAddresses[0].emailAddress}`)
+
   const handleLoginPress = () => {
     route.push("/(root)/(auth)/signin");
   };

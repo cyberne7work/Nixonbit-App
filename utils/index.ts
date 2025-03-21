@@ -102,3 +102,41 @@ export const fetchAddressFromGoogle = async (latitude, longitude) => {
     return "Error fetching address";
   }
 };
+
+// Function to convert ISO timestamp to human-readable format
+export const formatTimestamp = (isoTimestamp: string): string => {
+  const date = new Date(isoTimestamp);
+
+  // Check if the date is valid
+  if (isNaN(date.getTime())) {
+    return "Invalid Date";
+  }
+
+  // Option 1: Simple date (e.g., "3/21/2025")
+  const simpleDate = date.toLocaleDateString();
+
+  // Option 2: Date and time (e.g., "3/21/2025, 10:48 AM")
+  const dateTime = date.toLocaleString("en-US", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  // Option 3: Custom verbose format (e.g., "March 21, 2025 at 10:48 AM")
+  const verboseFormat = date.toLocaleString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).replace(",", " at");
+
+  // Return the desired format (uncomment the one you prefer)
+  return simpleDate; // Default: "3/21/2025"
+  // return dateTime; // Alternative: "3/21/2025, 10:48 AM"
+  // return verboseFormat; // Alternative: "March 21, 2025 at 10:48 AM"
+};

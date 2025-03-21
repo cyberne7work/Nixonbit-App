@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -7,50 +7,97 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { CustomTextInput } from "@/components/CustomTextInput";
+import { apiRequest } from "@/utils/api";
 
 // Define TypeScript interface for notice data
 interface NoticeItem {
   id: string;
   title: string;
-  content: string;
-  date: string;
+  description: string;
+  city: string;
+  postedBy: string | null;
+  category: string;
+  isActive: boolean;
+  expiryDate: string;
+  createdAt: string;
 }
 
-// Mock data for notices (expanded from HomeScreen)
-const noticeBoardData: NoticeItem[] = [
-  {
-    id: "1",
-    title: "Road Closure Alert",
-    content: "Main St closed 3/15-3/20 for repairs. Please use alternate routes during this period.",
-    date: "2025-03-14",
-  },
-  {
-    id: "2",
-    title: "Community Meeting",
-    content: "Join us on 3/25 at 7 PM at City Hall to discuss upcoming projects and community concerns.",
-    date: "2025-03-20",
-  },
-  {
-    id: "3",
-    title: "Water Supply Maintenance",
-    content: "Water supply will be interrupted on 3/18 from 9 AM to 2 PM for scheduled maintenance.",
-    date: "2025-03-17",
-  },
-];
+// Interface for pagination metadata
+interface Pagination {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+}
+
+// Function to convert ISO timestamp to human-readable format
+const formatTimestamp = (isoTimestamp: string): string => {
+  const date = new Date(isoTimestamp);
+  if (isNaN(date.getTime())) {
+    return "Invalid Date";
+  }
+  return date.toLocaleString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).replace(",", " at"); // e.g., "March 21, 2025 at 10:48 AM"
+};
 
 export default function NoticeListScreen() {
   const router = useRouter();
   const [searchValue, setSearchValue] = useState<string>("");
+  const [notices, setNotices] = useState<NoticeItem[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Filter notices based on title or content
-  const filteredNotices: NoticeItem[] = noticeBoardData.filter(
+  // Fetch notices from API with pagination
+  const fetchNotices = async (page: number) => {
+    setIsLoading(true);
+    try {
+      const response = await apiRequest(`/notices/city/Motihari?page=${page}`, 'GET', null);
+      console.log("Notices Response:", response);
+      const { notices: newNotices, pagination } = response.data;
+      
+      // Append new notices to existing list if not the first page
+      setNotices((prevNotices) => 
+        page === 1 ? newNotices : [...prevNotices, ...newNotices]
+      );
+      setCurrentPage(pagination.currentPage);
+      setTotalPages(pagination.totalPages);
+    } catch (error) {
+      console.error('[ERROR]: Failed to fetch notices:', error);
+      setNotices((prevNotices) => prevNotices || []); // Keep existing data on error
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initial fetch on component mount
+  useEffect(() => {
+    fetchNotices(1);
+  }, []);
+
+  // Load more notices when reaching the end of the list
+  const loadMoreNotices = () => {
+    if (!isLoading && currentPage < totalPages) {
+      fetchNotices(currentPage + 1);
+    }
+  };
+
+  // Filter notices based on title or description
+  const filteredNotices: NoticeItem[] = notices.filter(
     (item) =>
       item.title.toLowerCase().includes(searchValue.toLowerCase()) ||
-      item.content.toLowerCase().includes(searchValue.toLowerCase())
+      item.description.toLowerCase().includes(searchValue.toLowerCase())
   );
 
   const renderNoticeItem = ({ item }: { item: NoticeItem }) => (
@@ -64,8 +111,8 @@ export default function NoticeListScreen() {
       }
     >
       <Text style={styles.noticeTitle}>{item.title}</Text>
-      <Text style={styles.noticeContent}>{item.content}</Text>
-      <Text style={styles.noticeDate}>{item.date}</Text>
+      <Text style={styles.noticeContent}>{item.description}</Text>
+      <Text style={styles.noticeDate}>{formatTimestamp(item.createdAt)}</Text>
     </TouchableOpacity>
   );
 
@@ -97,7 +144,15 @@ export default function NoticeListScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderNoticeItem}
         contentContainerStyle={styles.listContent}
-        ListFooterComponent={<View style={{ height: 100 }} />}
+        onEndReached={loadMoreNotices}
+        onEndReachedThreshold={0.5} // Trigger loadMoreNotices when 50% from the bottom
+        ListFooterComponent={
+          isLoading ? (
+            <ActivityIndicator size="large" color="#3470E4" style={{ marginVertical: 20 }} />
+          ) : (
+            <View style={{ height: 100 }} />
+          )
+        }
       />
     </SafeAreaView>
   );
@@ -145,7 +200,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    // borderWidth: 1,
     borderColor: "#3470E4", // Secondary color
   },
   noticeTitle: {

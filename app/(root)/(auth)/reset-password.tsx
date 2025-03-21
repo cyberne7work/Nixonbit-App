@@ -71,6 +71,7 @@ export default function ResetPassword() {
           value={otpCode}
           onChangeText={setOtpCode}
           keyboardType="numeric"
+          autoCapitalize={"none"}
         />
 
         {/* New Password Input */}
@@ -81,6 +82,8 @@ export default function ResetPassword() {
           value={newPassword}
           onChangeText={setNewPassword}
           secureTextEntry
+          autoCapitalize={"none"}
+
         />
 
         {/* Confirm Password Input */}
@@ -91,6 +94,8 @@ export default function ResetPassword() {
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           secureTextEntry
+          autoCapitalize={"none"}
+
         />
 
         {/* Reset Password Button */}
@@ -129,7 +134,7 @@ const styles = StyleSheet.create({
     fontFamily: "Exo-Regular",
   },
   input: {
-    marginBottom: 15,
+    marginBottom: 5,
   },
   resetButton: {
     backgroundColor: "#3470E4",

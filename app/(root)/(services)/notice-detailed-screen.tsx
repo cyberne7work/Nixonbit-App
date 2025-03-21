@@ -11,12 +11,18 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 
-// Define TypeScript interface for notice data (reused from list screen)
+// Define TypeScript interface for notice data based on API structure
 interface NoticeItem {
   id: string;
   title: string;
-  content: string;
-  date: string;
+  description: string;
+  city: string;
+  postedBy: string | null;
+  category: string;
+  isActive: boolean;
+  expiryDate: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function NoticeDetailedScreen() {
@@ -50,14 +56,31 @@ export default function NoticeDetailedScreen() {
           <MaterialIcons name="arrow-back" size={24} color="#002045" />
         </TouchableOpacity>
         <Text style={styles.header} numberOfLines={1}>
-          {notice.title}
+          {notice.title.slice(0,5)}
         </Text>
       </View>
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.noticeDetails}>
           <Text style={styles.title}>{notice.title}</Text>
-          <Text style={styles.content}>{notice.content}</Text>
-          <Text style={styles.date}>Date: {notice.date}</Text>
+          <Text style={styles.content}>{notice.description}</Text>
+          <Text style={styles.date}>
+            Posted: {new Date(notice.createdAt).toLocaleDateString()}
+          </Text>
+          <Text style={styles.meta}>
+            City: {notice.city}
+          </Text>
+          <Text style={styles.meta}>
+            Category: {notice.category}
+          </Text>
+          <Text style={styles.meta}>
+            Expires: {new Date(notice.expiryDate).toLocaleDateString()}
+          </Text>
+          <Text style={styles.meta}>
+            Status: {notice.isActive ? "Active" : "Inactive"}
+          </Text>
+          {notice.postedBy && (
+            <Text style={styles.meta}>Posted By: {notice.postedBy}</Text>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -101,7 +124,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    // borderWidth: 1,
     borderColor: "#3470E4", // Secondary color
   },
   title: {
@@ -121,6 +143,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Exo-Regular",
     color: "#3470E4", // Secondary color
+    marginBottom: 5,
+  },
+  meta: {
+    fontSize: 14,
+    fontFamily: "Exo-Regular",
+    color: "#666",
+    marginBottom: 5,
   },
   errorText: {
     fontSize: 18,

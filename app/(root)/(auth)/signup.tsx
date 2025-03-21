@@ -16,6 +16,7 @@ import OtpModal from "@/components/OtpModel";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import OauthFacebook from "@/components/OauthFacebook";
 import OauthGoogle from "@/components/OauthGoogle";
+import { apiRequest } from "@/utils/api";
 
 export default function Signup() {
   const { isLoaded, signUp, setActive } = useSignUp();
@@ -36,26 +37,33 @@ export default function Signup() {
       Alert.alert("Error", "All fields are required.");
       return;
     }
-
+  
     if (!isLoaded) return;
-
+  
     try {
       // Start signup process
-      await signUp.create({
-        emailAddress,
-        password,
-      });
-
+      // await signUp.create({
+      //   emailAddress,
+      //   password,
+      // });
+  
       // Send OTP to user's email
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-
-      setPendingVerification(true); // Show OTP modal
-    } catch (err) {
-      console.error("Signup Error:", err);
-      Alert.alert(
-        "Error",
-        "An error occurred during signup. Please try again."
-      );
+      // await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      let result = await apiRequest('/nixonbit/users/register', 'POST', { email: emailAddress, name: name });
+      if (typeof result === 'object' && result !== null && 'success' in result && typeof (result as any).success === 'boolean') {
+        if ((result as { success: boolean }).success) {
+          setPendingVerification(true); // Show OTP modal
+        }
+      }
+      } catch (err: any) {
+      console.log("Signup Error:", err.Message); // Log the error message for debugging
+  
+      // Extract the error message from the error object
+      const errorMessage = err.Message || err.message || "An error occurred during signup. Please try again.";
+      console.log("errorMessage", errorMessage);
+  
+      // Display the error message in an alert
+      Alert.alert("Error", errorMessage);
     }
   };
 

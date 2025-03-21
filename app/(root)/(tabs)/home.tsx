@@ -2,7 +2,7 @@ import { CustomTextInput } from "@/components/CustomTextInput";
 import EventCard from "@/components/EventCard";
 import ImageSlider from "@/components/ImageSlider";
 import ServiceCard from "@/components/ServiceCard";
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { useRouter } from "expo-router"; // Add this import
 import {
   StyleSheet,
@@ -17,15 +17,70 @@ import {
   Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-// Define TypeScript interface for news data
+import { apiRequest } from "@/utils/api";
+import { formatTimestamp } from "@/utils";
+
+// Define TypeScript interfaces
 interface NewsItem {
   id: string;
   headline: string;
   summary: string;
   source: string;
-  date?: string; // Optional: added for consistency with detailed view
-  content?: string; // Optional: for detailed view
+  date?: string;
+  content?: string;
+  city: string;
+  category: string;
+  publicationDate?: string;
+  imageUrl?: string;
 }
+
+interface NoticeItem {
+  id: string;
+  title: string;
+  description: string;
+  city: string;
+  postedBy: string | null; // Adjusted to allow null as per API data
+  category: string;
+  isActive: boolean;
+  expiryDate: string;
+  createdAt: string;
+}
+
+interface ServiceItem {
+  id: string;
+  serviceName: string;
+  iconName: string;
+  description: string;
+  price: number;
+  duration: string;
+  availability: boolean;
+  category: string;
+}
+
+interface AdvertisementItem {
+  id: string;
+  title: string;
+  description: string;
+  city: string;
+  category: string;
+  isActive: string;
+  expiryDate: string;
+  price: string;
+  createdAt: string;
+  updatedAt: string;
+  imageUrl: string;
+  link: string;
+}
+
+interface TrendingItem {
+  id: string;
+  name: string;
+  type: string;
+  location: string;
+  imageUrl: string;
+  website: string;
+}
+
 const publicImageUrls = [
   // "https://images.unsplash.com/photo-1593642634311-18a8d3fd4031?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800", // A workspace
   "https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800", // A beautiful beach
@@ -225,22 +280,6 @@ const mixedData = [
   },
 ];
 
-// Placeholder data for new sections
-const noticeBoardData = [
-  {
-    id: "1",
-    title: "Road Closure Alert",
-    content: "Main St closed 3/15-3/20 for repairs.",
-    date: "2025-03-14",
-  },
-  {
-    id: "2",
-    title: "Community Meeting",
-    content: "Join us on 3/25 at 7 PM at City Hall.",
-    date: "2025-03-20",
-  },
-];
-
 const advertisementData = [
   {
     id: "1",
@@ -292,6 +331,52 @@ export default function HomeScreen() {
   const [showAll, setShowAll] = useState(false);
   const router = useRouter();
   const displayedData = showAll ? servicesData : servicesData.slice(0, 6);
+  const [notices, setNotices] = useState<NoticeItem[]>([]);
+  const [advertisements, setAdvertisements] = useState<AdvertisementItem[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
+
+  // Fetch data from API on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // setLoading(true);
+
+
+
+        // Fetch Notices
+        const noticesResponse = await apiRequest('/notices/city/Motihari','GET',null);
+        console.log(noticesResponse)
+        const noticesData = await noticesResponse.data.notices;
+        console.log(noticesData);
+        setNotices(noticesData.slice(0, 5)); // Limit to 5 for brevity
+
+        // Fetch Advertisements
+        const adsResponse = await apiRequest('/advertisements/city/Motihari','GET',null);
+        const adsData = await adsResponse.data.advertisements;
+        setAdvertisements(adsData.slice(0, 15)); // Limit to 5
+
+        // Fetch News
+        const newsResponse = await apiRequest('/news/city/Motihari','GET',null);
+        const newsData = await newsResponse.data.news;
+        setNews(newsData.slice(0, 5)); // Limit to 5
+
+        // Fetch Trending (Mixed Data)
+        // const trendingResponse = await fetch('http://your-backend-url/api/trending');
+        // const trendingData = await trendingResponse.json();
+        // setTrending(trendingData.slice(0, 10)); // Limit to 10
+
+      } catch (error) {
+        console.error('[ERROR]: Failed to fetch data:', error);
+        Alert.alert('Error', 'Failed to load data from the server.');
+      } finally {
+        // setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+
   const eventPress = () => {
     Alert.alert("Event Selected");
   };
@@ -350,7 +435,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
               <FlatList
                 horizontal
-                data={noticeBoardData}
+                data={notices}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
                 renderItem={({ item }) => (
@@ -365,8 +450,8 @@ export default function HomeScreen() {
                     }
                   >
                     <Text style={styles.noticeTitle}>{item.title}</Text>
-                    <Text style={styles.noticeContent}>{item.content}</Text>
-                    <Text style={styles.noticeDate}>{item.date}</Text>
+                    <Text style={styles.noticeContent}>{item.category}</Text>
+                    <Text style={styles.noticeDate}>{formatTimestamp(item.createdAt)}</Text>
                   </TouchableOpacity>
                 )}
                 showsHorizontalScrollIndicator={false}
@@ -378,7 +463,7 @@ export default function HomeScreen() {
               <Text style={styles.header}>Advertisements</Text>
               <FlatList
                 horizontal
-                data={advertisementData}
+                data={advertisements}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
                 renderItem={({ item }) => (
@@ -392,6 +477,9 @@ export default function HomeScreen() {
                       resizeMode='cover'
                     />
                     <Text style={styles.adTitle}>{item.title}</Text>
+                    <Text style={styles.noticeContent}>{item.category}</Text>
+                    <Text style={styles.noticeDate}>{formatTimestamp(item.createdAt)}</Text>
+
                   </TouchableOpacity>
                 )}
                 showsHorizontalScrollIndicator={false}
@@ -412,7 +500,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
               <FlatList
                 horizontal
-                data={newsData}
+                data={news}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
                 renderItem={({ item }) => (
@@ -425,9 +513,11 @@ export default function HomeScreen() {
                       })
                     }
                   >
-                    <Text style={styles.newsHeadline}>{item.headline}</Text>
-                    <Text style={styles.newsSummary}>{item.summary}</Text>
-                    <Text style={styles.newsSource}>Source: {item.source}</Text>
+                    <Text style={styles.newsHeadline}>{item.headline?.slice(0,50)}</Text>
+                    <Text style={styles.newsSummary}>{item.content?.slice(0,50)}</Text>
+                    <Text style={styles.newsSource}>{item.category}</Text>
+                    <Text style={styles.noticeDate}>{formatTimestamp(item.createdAt)}</Text>
+
                   </TouchableOpacity>
                 )}
                 showsHorizontalScrollIndicator={false}
@@ -595,7 +685,6 @@ const styles = StyleSheet.create({
   },
   // Advertisement Styles
   adCard: {
-    alignItems: "center",
     marginRight: 10,
     width: 300,
     marginBottom: 10,
@@ -612,7 +701,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Exo-Bold",
     color: "#3470E4", // Secondary color
-    textAlign: "center",
+    // textAlign: "center",
   },
   // News Styles
   newsCard: {
@@ -621,7 +710,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginRight: 10,
     width: 250,
-    height: 120,
+    height: 150,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

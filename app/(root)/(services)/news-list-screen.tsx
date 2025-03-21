@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -7,58 +7,105 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { CustomTextInput } from "@/components/CustomTextInput";
+import { useUser } from "@clerk/clerk-expo";
+import { apiRequest } from "@/utils/api";
 
-// Define TypeScript interface for news data
+// Define TypeScript interface for news data based on API structure
 interface NewsItem {
   id: string;
   headline: string;
-  summary: string;
-  source: string;
-  date?: string; // Optional: added for consistency with detailed view
-  content?: string; // Optional: for detailed view
+  content: string;
+  source?: string; // Optional since not explicitly in API response, but assumed
+  city: string;
+  category: string;
+  imageUrl?: string;
+  isPublished: boolean;
+  publicationDate: string; // ISO timestamp
+  postedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
-// Mock data for news (expanded from HomeScreen)
-const newsData: NewsItem[] = [
-  {
-    id: "1",
-    headline: "New Park Opening",
-    summary: "City unveils new park downtown next month.",
-    source: "City News",
-    date: "2025-03-14",
-    content: "The city council has announced the grand opening of a new park in the downtown area, featuring green spaces, playgrounds, and a community garden. The event is scheduled for next month with a ribbon-cutting ceremony.",
-  },
-  {
-    id: "2",
-    headline: "Tech Expo 2025",
-    summary: "Annual tech expo scheduled for April.",
-    source: "Tech Daily",
-    date: "2025-03-20",
-    content: "Tech Expo 2025 will showcase the latest innovations in AI, robotics, and renewable energy. Held annually, this event attracts thousands of tech enthusiasts and industry leaders from around the globe.",
-  },
-  {
-    id: "3",
-    headline: "Local Art Festival",
-    summary: "Art festival to celebrate local talent this weekend.",
-    source: "Art Weekly",
-    date: "2025-03-15",
-    content: "This weekend’s art festival will feature local artists, live performances, and interactive workshops. Don’t miss the chance to explore creativity in your community!",
-  },
-];
+// Interface for pagination metadata
+interface Pagination {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+}
+
+// Function to convert ISO timestamp to human-readable format
+const formatTimestamp = (isoTimestamp: string): string => {
+  const date = new Date(isoTimestamp);
+  if (isNaN(date.getTime())) {
+    return "Invalid Date";
+  }
+  return date.toLocaleString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).replace(",", " at"); // e.g., "March 21, 2025 at 10:50 AM"
+};
 
 export default function NewsListScreen() {
   const router = useRouter();
   const [searchValue, setSearchValue] = useState<string>("");
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { user } = useUser();
 
-  // Filter news based on headline or source
-  const filteredNews: NewsItem[] = newsData.filter(
+  // Check if the user is authorized to add news
+  const isAuthorizedUser = user?.emailAddresses[0].emailAddress === "cyberne7work@gmail.com";
+
+  // Fetch news from API with pagination
+  const fetchNews = async (page: number) => {
+    setIsLoading(true);
+    try {
+      const response = await apiRequest(`/news/city/Motihari?page=${page}`, 'GET', null);
+      console.log("News Response:", response);
+      const { news: newNews, pagination } = response.data;
+
+      // Append new news to existing list if not the first page
+      setNews((prevNews) => 
+        page === 1 ? newNews : [...prevNews, ...newNews]
+      );
+      setCurrentPage(pagination.currentPage);
+      setTotalPages(pagination.totalPages);
+    } catch (error) {
+      console.error('[ERROR]: Failed to fetch news:', error);
+      setNews((prevNews) => prevNews || []); // Keep existing data on error
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initial fetch on component mount
+  useEffect(() => {
+    fetchNews(1);
+  }, []);
+
+  // Load more news when reaching the end of the list
+  const loadMoreNews = () => {
+    if (!isLoading && currentPage < totalPages) {
+      fetchNews(currentPage + 1);
+    }
+  };
+
+  // Filter news based on headline or content (source not always present)
+  const filteredNews: NewsItem[] = news.filter(
     (item) =>
       item.headline.toLowerCase().includes(searchValue.toLowerCase()) ||
-      item.source.toLowerCase().includes(searchValue.toLowerCase())
+      item.content.toLowerCase().includes(searchValue.toLowerCase())
   );
 
   const renderNewsItem = ({ item }: { item: NewsItem }) => (
@@ -72,10 +119,10 @@ export default function NewsListScreen() {
       }
     >
       <Text style={styles.newsHeadline}>{item.headline}</Text>
-      <Text style={styles.newsSummary}>{item.summary}</Text>
+      <Text style={styles.newsSummary}>{item.content.slice(0, 100) + (item.content.length > 100 ? "..." : "")}</Text>
       <View style={styles.newsFooter}>
-        <Text style={styles.newsSource}>Source: {item.source}</Text>
-        {item.date && <Text style={styles.newsDate}>{item.date}</Text>}
+        {item.source && <Text style={styles.newsSource}>Source: {item.source}</Text>}
+        <Text style={styles.newsDate}>{formatTimestamp(item.publicationDate)}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -94,10 +141,18 @@ export default function NewsListScreen() {
           <MaterialIcons name="arrow-back" size={24} color="#002045" />
         </TouchableOpacity>
         <Text style={styles.header}>News & Updates</Text>
+        {isAuthorizedUser && (
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => router.push("/(root)/(services)/add-news-screen")}
+          >
+            <MaterialIcons name="add" size={24} color="#002045" />
+          </TouchableOpacity>
+        )}
       </View>
       <CustomTextInput
         label={null}
-        placeholder="Search news by headline or source"
+        placeholder="Search news by headline or content"
         value={searchValue}
         onChangeText={setSearchValue}
         autoCapitalize="none"
@@ -108,7 +163,15 @@ export default function NewsListScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderNewsItem}
         contentContainerStyle={styles.listContent}
-        ListFooterComponent={<View style={{ height: 100 }} />}
+        onEndReached={loadMoreNews}
+        onEndReachedThreshold={0.5} // Trigger loadMoreNews when 50% from the bottom
+        ListFooterComponent={
+          isLoading ? (
+            <ActivityIndicator size="large" color="#3470E4" style={{ marginVertical: 20 }} />
+          ) : (
+            <View style={{ height: 100 }} />
+          )
+        }
       />
     </SafeAreaView>
   );
@@ -138,6 +201,12 @@ const styles = StyleSheet.create({
     top: "50%",
     transform: [{ translateY: -12 }], // Vertically center the icon
   },
+  addButton: {
+    position: "absolute",
+    right: 10,
+    top: "50%",
+    transform: [{ translateY: -12 }], // Vertically center the icon
+  },
   search: {
     marginHorizontal: 10,
     marginVertical: 10,
@@ -156,8 +225,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    // borderWidth: 1,
-    // borderColor: "#3470E4", // Secondary color
   },
   newsHeadline: {
     fontSize: 18,

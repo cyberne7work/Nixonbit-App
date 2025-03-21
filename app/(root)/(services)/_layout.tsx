@@ -242,6 +242,12 @@ export default function AuthLayout() {
         }}
         name='notice-list-screen'
       />
+            <Stack.Screen
+        options={{
+          headerShown: false,
+        }}
+        name='add-news-screen'
+      />
     </Stack>
   );
 }

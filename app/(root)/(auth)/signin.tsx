@@ -65,66 +65,7 @@ export default function SignIn() {
     router.push("/(root)/(auth)/forget-password");
   };
 
-  const handleFacebookSignIn = useCallback(async () => {
-    try {
-      const { startOAuthFlow } = useOAuth({ strategy: "oauth_facebook" });
 
-      const { createdSessionId, signIn, signUp, setActive } =
-        await startOAuthFlow({
-          redirectUrl: Linking.createURL("/(root)/(tabs)/home", {
-            scheme: "myapp",
-          }),
-        });
-
-      // If sign in was successful, set the active session
-      if (createdSessionId) {
-        if (signIn) {
-          setActive!({ session: createdSessionId });
-          router.push("/(root)/(tabs)/home");
-        }
-        if (signUp?.createdUserId) {
-          setActive!({ session: createdSessionId });
-          router.push("/(root)/(tabs)/home");
-        }
-      } else {
-      }
-    } catch (err) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
-      console.error(JSON.stringify(err, null, 2));
-    }
-  }, []);
-
-  const handleGoogleSignIn = useCallback(async () => {
-    try {
-      const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
-
-      const { createdSessionId, signIn, signUp, setActive } =
-        await startOAuthFlow({
-          redirectUrl: Linking.createURL("/(root)/(tabs)/home", {
-            scheme: "myapp",
-          }),
-        });
-
-      // If sign in was successful, set the active session
-      if (createdSessionId) {
-        if (signIn) {
-          setActive!({ session: createdSessionId });
-          router.push("/(root)/(tabs)/home");
-        }
-        if (signUp?.createdUserId) {
-          setActive!({ session: createdSessionId });
-          router.push("/(root)/(tabs)/home");
-        }
-      } else {
-      }
-    } catch (err) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
-      console.log(err);
-      console.error(JSON.stringify(err, null, 2));
-    }
-  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -149,6 +90,7 @@ export default function SignIn() {
           onChangeText={setPassword}
           secureTextEntry
           showToggleIcon
+          autoCapitalize='none'
         />
 
         {/* Forgot Password Link */}
