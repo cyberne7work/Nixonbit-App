@@ -6,56 +6,7 @@ import { FlatList, StyleSheet, View, Text, SafeAreaView,TouchableOpacity } from 
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { apiRequest } from '@/utils/api';
 
-const serviceMen = [
-  {
-    id: "1",
-    name: "John Doe",
-    profilePic: "https://randomuser.me/api/portraits/men/1.jpg",
-    rating: 4.5,
-    experience: 5,
-    phoneNumber: "+91 8797971422",
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    profilePic: "https://randomuser.me/api/portraits/women/2.jpg",
-    rating: 4.8,
-    experience: 7,
-    phoneNumber: "+91 8797971422",
-  },
-  {
-    id: "3",
-    name: "Mike Johnson",
-    profilePic: "https://randomuser.me/api/portraits/men/3.jpg",
-    rating: 4.2,
-    experience: 3,
-    phoneNumber: "+91 8797971422",
-  },
-  {
-    id: "4",
-    name: "Sarah Williams",
-    profilePic: "https://randomuser.me/api/portraits/women/4.jpg",
-    rating: 4.6,
-    experience: 6,
-    phoneNumber: "+91 8797971422",
-  },
-  {
-    id: "5",
-    name: "David Brown",
-    profilePic: "https://randomuser.me/api/portraits/men/5.jpg",
-    rating: 4.7,
-    experience: 4,
-    phoneNumber: "+91 8797971422",
-  },
-  {
-    id: "6",
-    name: "Michael Davis",
-    profilePic: "https://randomuser.me/api/portraits/men/6.jpg",
-    rating: 4.9,
-    experience: 5,
-    phoneNumber: "+91 8797971422",
-  },
-];
+
 
 export default function ServiceManProfileList() {
   const router = useRouter();
@@ -69,6 +20,7 @@ export default function ServiceManProfileList() {
       try {
         const params = {
           serviceCategory: Provider, // Example parameter
+          limit:'100'
         };
   
         const queryString = new URLSearchParams(params).toString(); // Convert params to query string
@@ -90,7 +42,15 @@ export default function ServiceManProfileList() {
   const handleProfilePress = (profile) => {
     router.push({
       pathname: "/(root)/(services)/servicelist-detail-screen",
-      params: { profile: JSON.stringify(profile) },
+      params: { item: JSON.stringify({
+        id: profile.id,
+        name: profile.name,
+        profilePic: profile.profile_picture,
+        rating: profile.average_rating,
+        experience: profile.experience,
+        phoneNumber: profile.phone,
+        services: profile.services[0],
+      }) },
     });
   };
 

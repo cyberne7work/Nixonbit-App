@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
 import { CustomTextInput } from "@/components/CustomTextInput";
+import { apiRequest } from '@/utils/api';
 
 // Define TypeScript interfaces for public place data
 interface Coordinates {
@@ -22,10 +23,10 @@ interface Coordinates {
 interface PublicPlace {
   id: string;
   name: string;
-  type: string; // e.g., "Park", "Library", "Community Center"
+  category: string; // e.g., "Park", "Library", "Community Center"
   location: string;
   description: string;
-  contactPhone: string | null;
+  contact: string | null;
   coordinates: Coordinates | null;
   hours: string; // e.g., "9 AM - 5 PM"
   accessibility: string; // e.g., "Wheelchair accessible"
@@ -86,9 +87,32 @@ const mockPublicPlaces: PublicPlace[] = [
 export default function PublicPlacesScreen() {
   const router = useRouter();
   const [filterText, setFilterText] = useState<string>("");
+  const [publicPlaces, setPublicPlaces] = useState<PublicPlace[]>(mockPublicPlaces);
+   useEffect(() => {
+      const fetchData = async () => {
+        try {
+          const params = {
+            // serviceCategory: Provider, // Example parameter
+            limit:'100'
+          };
+    
+          const queryString = new URLSearchParams(params).toString(); // Convert params to query string
+          const endpoint = `/public-places?${queryString}`;
+    
+          const servicesResponse = await apiRequest(endpoint, 'GET', null, '');
+          const data = servicesResponse.data.places || []; // Adjust based on your API response structure
+          console.log("Service Providers:", data);
+          setPublicPlaces(data);
+        } catch (error) {
+          console.error('[ERROR]: Failed to fetch data:', error);
+        }
+      };
+    
+      fetchData();
+    }, []);
 
   // Filter public places based on name or location
-  const filteredPlaces: PublicPlace[] = mockPublicPlaces.filter(
+  const filteredPlaces: PublicPlace[] = publicPlaces.filter(
     (place) =>
       place.name.toLowerCase().includes(filterText.toLowerCase()) ||
       place.location.toLowerCase().includes(filterText.toLowerCase())
@@ -144,20 +168,30 @@ export default function PublicPlacesScreen() {
         onPress={() =>
           router.push({
             pathname: "/(root)/(services)/public-places-detailed-screen",
-            params: { place: JSON.stringify(item) },
+            params: { place: JSON.stringify({
+              id: item.id,
+              name: item.name,
+              type: item.category,
+              location: item.location,
+              description: item.description,
+              contactPhone: item.contact,
+              coordinates: item.coordinates,
+              hours: item.hours,
+              accessibility: item.accessibility,
+            }) },
           })
         }
       >
         <Text style={styles.placeName}>{item.name}</Text>
-        <Text style={styles.placeType}>{item.type}</Text>
+        <Text style={styles.placeType}>{item.category}</Text>
         <Text style={styles.placeLocation}>{item.location}</Text>
         <Text style={styles.placeDescription}>{item.description}</Text>
       </TouchableOpacity>
       <View style={styles.actionButtons}>
-        {item.contactPhone && (
+        {item.contact && (
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => handleCall(item.contactPhone)}
+            onPress={() => handleCall(item.contact)}
           >
             <MaterialIcons name="phone" size={20} color="#3470E4" />
             <Text style={styles.actionText}>Call</Text>

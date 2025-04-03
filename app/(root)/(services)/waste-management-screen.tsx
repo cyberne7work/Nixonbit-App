@@ -95,8 +95,8 @@ const WasteManagementScreen = () => {
         const token = await getToken();
         const response = await apiRequest('/waste', 'GET', null, token);
         if (response.success) {
-          console.log(response.data.wasteReports);
-          setReportedIssues(response.data.wasteReports);
+          console.log(response.data.reports);
+          setReportedIssues(response.data.reports);
         } else {
           Alert.alert(
             'Error',
@@ -203,7 +203,7 @@ const WasteManagementScreen = () => {
 
         const reportsResponse = await apiRequest('/waste', 'GET', null, token);
         if (reportsResponse.success) {
-          setReportedIssues(reportsResponse.data.wasteReports);
+          setReportedIssues(reportsResponse.data.reports);
         }
       } else {
         Alert.alert(

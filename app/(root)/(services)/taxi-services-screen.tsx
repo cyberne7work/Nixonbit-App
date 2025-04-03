@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,12 @@ import {
   SafeAreaView,
   FlatList,
   Image,
-} from "react-native";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import { useRouter } from "expo-router";
-import { CustomTextInput } from "@/components/CustomTextInput";
+  Alert,
+} from 'react-native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { useRouter } from 'expo-router';
+import { CustomTextInput } from '@/components/CustomTextInput';
+import { apiRequest } from '@/utils/api';
 
 // Define TypeScript interfaces for taxi service data
 interface Coordinates {
@@ -18,127 +20,73 @@ interface Coordinates {
   longitude: number;
 }
 
-interface CarDetails {
+interface Car {
   make: string;
   model: string;
   year: number;
   licensePlate: string;
   color: string;
-  imageUrl: string; // Added for car image
+  lastService: string;
 }
 
 interface DriverInfo {
   name: string;
-  licenseNumber: string;
+  license: string;
   phone: string;
   rating: number;
 }
 
 interface OwnerInfo {
   name: string;
-  contactPhone: string;
+  phone: string;
   email: string;
 }
 
 interface TaxiService {
   id: string;
-  carDetails: CarDetails;
-  driverInfo: DriverInfo;
-  ownerInfo: OwnerInfo;
-  currentLocation: Coordinates | null;
+  car: Car;
+  driver: DriverInfo;
+  owner: OwnerInfo;
   availability: string;
-  lastServiceDate: string;
+  mapLink: string;
+  bookingLink: string;
+  createdAt: string;
+  updatedAt: string;
+  currentLocation?: Coordinates | null;
 }
-
-// Mock data for multiple taxi services with image URLs
-const mockTaxiServices: TaxiService[] = [
-  {
-    id: "1",
-    carDetails: {
-      make: "Toyota",
-      model: "Prius",
-      year: 2020,
-      licensePlate: "ABC1234",
-      color: "Silver",
-      imageUrl: "https://via.placeholder.com/150/cccccc/ffffff?text=Toyota+Prius",
-    },
-    driverInfo: {
-      name: "John Doe",
-      licenseNumber: "D1234567",
-      phone: "415-555-0101",
-      rating: 4.8,
-    },
-    ownerInfo: {
-      name: "Jane Smith",
-      contactPhone: "415-555-0202",
-      email: "jane.smith@example.com",
-    },
-    currentLocation: { latitude: 37.7749, longitude: -122.4194 },
-    availability: "Available",
-    lastServiceDate: "2025-01-15",
-  },
-  {
-    id: "2",
-    carDetails: {
-      make: "Honda",
-      model: "Civic",
-      year: 2019,
-      licensePlate: "XYZ5678",
-      color: "Black",
-      imageUrl: "https://via.placeholder.com/150/000000/ffffff?text=Honda+Civic",
-    },
-    driverInfo: {
-      name: "Alice Johnson",
-      licenseNumber: "D9876543",
-      phone: "415-555-0303",
-      rating: 4.5,
-    },
-    ownerInfo: {
-      name: "Bob Wilson",
-      contactPhone: "415-555-0404",
-      email: "bob.wilson@example.com",
-    },
-    currentLocation: { latitude: 37.7879, longitude: -122.4071 },
-    availability: "Busy",
-    lastServiceDate: "2025-02-01",
-  },
-  {
-    id: "3",
-    carDetails: {
-      make: "Ford",
-      model: "Escape",
-      year: 2021,
-      licensePlate: "LMN9012",
-      color: "Blue",
-      imageUrl: "https://via.placeholder.com/150/0000ff/ffffff?text=Ford+Escape",
-    },
-    driverInfo: {
-      name: "Mike Brown",
-      licenseNumber: "D4567891",
-      phone: "206-555-0505",
-      rating: 4.9,
-    },
-    ownerInfo: {
-      name: "Sara Davis",
-      contactPhone: "206-555-0606",
-      email: "sara.davis@example.com",
-    },
-    currentLocation: { latitude: 47.6062, longitude: -122.3321 },
-    availability: "Available",
-    lastServiceDate: "2025-01-20",
-  },
-];
 
 export default function TaxiServicesScreen() {
   const router = useRouter();
-  const [filterText, setFilterText] = useState<string>("");
+  const [filterText, setFilterText] = useState<string>('');
+  const [taxiServices, setTaxiServices] = useState<TaxiService[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(true);
 
-  // Filter taxi services based on make, model, or driver name
-  const filteredServices: TaxiService[] = mockTaxiServices.filter(
-    (service) =>
-      service.carDetails.make.toLowerCase().includes(filterText.toLowerCase()) ||
-      service.carDetails.model.toLowerCase().includes(filterText.toLowerCase()) ||
-      service.driverInfo.name.toLowerCase().includes(filterText.toLowerCase())
+  useEffect(() => {
+    (async () => {
+      try {
+        const response = await apiRequest('/taxi-services', 'GET', null, '');
+        if ((response as any).success) {
+          setTaxiServices((response as any).data.taxis);
+        } else {
+          Alert.alert(
+            'Error',
+            (response as any).message || 'Failed to fetch taxi-services.'
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching taxi-services:', error);
+        Alert.alert('Error', 'Failed to fetch taxi-services.');
+      } finally {
+        setReportsLoading(false);
+      }
+    })();
+  }, []);
+
+  const filteredServices = taxiServices.filter(
+    (taxi) =>
+      taxi.car.make.toLowerCase().includes(filterText.toLowerCase()) ||
+      taxi.car.model.toLowerCase().includes(filterText.toLowerCase()) ||
+      taxi.driver.name.toLowerCase().includes(filterText.toLowerCase())
   );
 
   const renderServiceItem = ({ item }: { item: TaxiService }) => (
@@ -146,25 +94,37 @@ export default function TaxiServicesScreen() {
       style={styles.serviceItem}
       onPress={() =>
         router.push({
-          pathname: "/(root)/(services)/taxi-services-detailed-screen",
-          params: { taxiService: JSON.stringify(item) },
+          pathname: '/(root)/(services)/taxi-services-detailed-screen',
+          params: {
+            taxiService: JSON.stringify({
+              ...item,
+              car: {
+                ...item.car,
+                imageUrl: `https://via.placeholder.com/150/cccccc/ffffff?text=${item.car.make}+${item.car.model}`,
+              },
+              currentLocation: item.currentLocation || {
+                latitude: 37.7749,
+                longitude: -122.4194,
+              },
+            }),
+          },
         })
       }
     >
       <Image
-        source={{ uri: item.carDetails.imageUrl }}
+        source={{
+          uri: `https://via.placeholder.com/150/cccccc/ffffff?text=${item.car.make}+${item.car.model}`,
+        }}
         style={styles.carImage}
         resizeMode="cover"
       />
       <View style={styles.serviceInfo}>
         <Text style={styles.serviceName}>
-          {item.carDetails.make} {item.carDetails.model}
+          {item.car.make} {item.car.model}
         </Text>
+        <Text style={styles.serviceDetail}>Driver: {item.driver.name}</Text>
         <Text style={styles.serviceDetail}>
-          Driver: {item.driverInfo.name}
-        </Text>
-        <Text style={styles.serviceDetail}>
-          License: {item.carDetails.licensePlate}
+          License: {item.car.licensePlate}
         </Text>
         <Text style={styles.serviceDetail}>
           Availability: {item.availability}
@@ -211,37 +171,37 @@ export default function TaxiServicesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: '#f5f5f5',
   },
   headerContainer: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     height: 40,
-    justifyContent: "center" as const,
+    justifyContent: 'center' as const,
   },
   header: {
     fontSize: 18,
-    color: "#002045",
-    fontWeight: "bold" as const,
-    fontFamily: "Exo-Regular",
-    textAlign: "center" as const,
+    color: '#002045',
+    fontWeight: 'bold' as const,
+    fontFamily: 'Exo-Regular',
+    textAlign: 'center' as const,
   },
   backButton: {
-    position: "absolute" as const,
+    position: 'absolute' as const,
     left: 10,
-    top: "50%" as const,
+    top: '50%' as const,
     transform: [{ translateY: -12 }],
   },
   listContentContainer: {
     paddingBottom: 20,
   },
   serviceItem: {
-    flexDirection: "row" as const,
-    backgroundColor: "#fff",
+    flexDirection: 'row' as const,
+    backgroundColor: '#fff',
     padding: 15,
     marginVertical: 8,
     borderRadius: 8,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -255,18 +215,18 @@ const styles = StyleSheet.create({
   },
   serviceInfo: {
     flex: 1,
-    justifyContent: "center" as const,
+    justifyContent: 'center' as const,
   },
   serviceName: {
     fontSize: 18,
-    fontWeight: "bold" as const,
-    color: "#002045",
-    fontFamily: "Exo-Regular",
+    fontWeight: 'bold' as const,
+    color: '#002045',
+    fontFamily: 'Exo-Regular',
   },
   serviceDetail: {
     fontSize: 14,
-    color: "#666",
-    fontFamily: "Exo-Regular",
+    color: '#666',
+    fontFamily: 'Exo-Regular',
     marginTop: 5,
   },
   headerListStyle: {

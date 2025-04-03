@@ -12,14 +12,35 @@ import {
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 
+// Define TypeScript interface for job listing
+interface Coordinates {
+  latitude?: number;
+  longitude?: number;
+}
+
+interface JobListing {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  description: string;
+  type: string;
+  salary: string;
+  requirements: string[];
+  postedDate: string;
+  contactPhone?: string; // Optional, not in API but in mock
+  coordinates?: Coordinates | null; // Optional, not in API but in mock
+  mapLink?: string; // From API
+  applyLink?: string; // From API
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function JobDetailedScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const job = params.job ? JSON.parse(params.job) : null;
+  const job: JobListing | null = params.job ? JSON.parse(params.job) : null;
 
-  console.log("Job data:", job);
-
-  // If no job data is provided, show a fallback
   if (!job) {
     return (
       <SafeAreaView style={styles.container}>
@@ -28,7 +49,6 @@ export default function JobDetailedScreen() {
     );
   }
 
-  // Function to handle phone call
   const handleCall = () => {
     if (!job.contactPhone) {
       Alert.alert("Info", "No contact phone number available.");
@@ -46,25 +66,37 @@ export default function JobDetailedScreen() {
       .catch((err) => Alert.alert("Error", "Failed to make a call: " + err.message));
   };
 
-  // Function to open location in maps
   const handleLocation = () => {
-    if (!job.coordinates) {
+    if (job.mapLink) {
+      Linking.openURL(job.mapLink).catch((err) =>
+        Alert.alert("Error", "Failed to open map link: " + err.message)
+      );
+    } else if (job.coordinates) {
+      const { latitude, longitude } = job.coordinates;
+      const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+      Linking.openURL(url).catch((err) =>
+        Alert.alert("Error", "Failed to open maps: " + err.message)
+      );
+    } else {
       Alert.alert("Info", "This is a remote job with no specific location.");
-      return;
     }
-    const { latitude, longitude } = job.coordinates;
-    const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-    Linking.openURL(url).catch((err) =>
-      Alert.alert("Error", "Failed to open maps: " + err.message)
-    );
   };
 
-  // Function to share job
   const handleShare = () => {
     const message = `${job.title} at ${job.company}\nLocation: ${job.location}\nSalary: ${job.salary}\nApply now!`;
     Linking.openURL(`sms:&body=${encodeURIComponent(message)}`).catch((err) =>
       Alert.alert("Error", "Failed to share: " + err.message)
     );
+  };
+
+  const handleApply = () => {
+    if (job.applyLink) {
+      Linking.openURL(job.applyLink).catch((err) =>
+        Alert.alert("Error", "Failed to open application link: " + err.message)
+      );
+    } else {
+      Alert.alert("Info", "No application link available for this job.");
+    }
   };
 
   return (
@@ -84,7 +116,9 @@ export default function JobDetailedScreen() {
           <Text style={styles.location}>{job.location}</Text>
           <Text style={styles.type}>Type: {job.type}</Text>
           <Text style={styles.salary}>Salary: {job.salary || "Not specified"}</Text>
-          <Text style={styles.postedDate}>Posted: {job.postedDate}</Text>
+          <Text style={styles.postedDate}>
+            Posted: {new Date(job.postedDate).toLocaleDateString()}
+          </Text>
 
           <View style={styles.descriptionContainer}>
             <Text style={styles.sectionTitle}>Job Description</Text>
@@ -119,7 +153,7 @@ export default function JobDetailedScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.applyButton}>
+          <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
             <Text style={styles.applyButtonText}>Apply Now</Text>
           </TouchableOpacity>
         </View>
@@ -147,7 +181,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontFamily: "Exo-Regular",
     flex: 1,
-    paddingHorizontal: 40, // Prevent overlap with back button
+    paddingHorizontal: 40,
   },
   backButton: {
     position: "absolute",

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,89 +12,81 @@ import {
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
 import { CustomTextInput } from "@/components/CustomTextInput";
+import { apiRequest } from "@/utils/api";
 
 // Define TypeScript interfaces for pet service data
 interface Coordinates {
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface PetService {
   id: string;
   name: string;
-  type: string; // e.g., "Grooming", "Veterinary", "Boarding"
+  type: string;
   location: string;
   description: string;
-  contactPhone: string | null;
-  coordinates: Coordinates | null;
-  hours: string; // e.g., "9 AM - 6 PM"
-  servicesOffered: string[]; // e.g., ["Nail Trimming", "Bathing"]
+  phone: string | null; // Changed from contactPhone to match API
+  coordinates?: Coordinates | null; // Optional, not in API
+  hours: string;
+  servicesOffered: string[];
+  mapLink?: string; // From API
+  bookingLink?: string; // From API
+  createdAt: string;
+  updatedAt: string;
 }
-
-// Mock data for pet services
-const mockPetServices: PetService[] = [
-  {
-    id: "1",
-    name: "Paws & Claws Grooming",
-    type: "Grooming",
-    location: "San Francisco, CA",
-    description:
-      "Professional grooming services for dogs and cats.",
-    contactPhone: "415-555-4321",
-    coordinates: { latitude: 37.7749, longitude: -122.4194 },
-    hours: "9 AM - 6 PM",
-    servicesOffered: ["Bathing", "Nail Trimming", "Haircuts"],
-  },
-  {
-    id: "2",
-    name: "Urban Vet Clinic",
-    type: "Veterinary",
-    location: "New York, NY",
-    description:
-      "Full-service veterinary care for all pets.",
-    contactPhone: "212-555-8765",
-    coordinates: { latitude: 40.7128, longitude: -74.0060 },
-    hours: "8 AM - 8 PM",
-    servicesOffered: ["Vaccinations", "Surgery", "Check-ups"],
-  },
-  {
-    id: "3",
-    name: "Seattle Pet Boarding",
-    type: "Boarding",
-    location: "Seattle, WA",
-    description:
-      "Safe and comfortable boarding for pets.",
-    contactPhone: "206-555-2109",
-    coordinates: { latitude: 47.6062, longitude: -122.3321 },
-    hours: "7 AM - 7 PM",
-    servicesOffered: ["Daycare", "Overnight Boarding", "Playtime"],
-  },
-  {
-    id: "4",
-    name: "Pet Care Hotline",
-    type: "Support Service",
-    location: "Remote",
-    description:
-      "24/7 hotline for pet care advice and emergencies.",
-    contactPhone: "800-555-6543",
-    coordinates: null,
-    hours: "24/7",
-    servicesOffered: ["Emergency Advice", "Behavioral Support"],
-  },
-];
 
 export default function PetServicesScreen() {
   const router = useRouter();
   const [filterText, setFilterText] = useState<string>("");
+  const [petServices, setPetServices] = useState<PetService[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Filter pet services based on name or location
-  const filteredServices: PetService[] = mockPetServices.filter(
+  useEffect(() => {
+    const fetchPetServices = async () => {
+      try {
+        const response = await apiRequest('/pet-services', 'GET', null, '');
+        if (response.success) {
+          setPetServices(response.data.services);
+        } else {
+          Alert.alert(
+            'Error',
+            response.message || 'Failed to fetch pet services.',
+            // Fallback to mock data if API fails
+            [{ text: 'OK', onPress: () => setPetServices([
+              {
+                id: "1",
+                name: "Paws & Claws Grooming",
+                type: "Grooming",
+                location: "San Francisco, CA",
+                description: "Professional grooming services for dogs and cats.",
+                phone: "415-555-4321",
+                coordinates: { latitude: 37.7749, longitude: -122.4194 },
+                hours: "9 AM - 6 PM",
+                servicesOffered: ["Bathing", "Nail Trimming", "Haircuts"],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+              }
+            ]) }]
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching pet services:', error);
+        Alert.alert('Error', 'Failed to fetch pet services.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPetServices();
+  }, []);
+
+  const filteredServices = petServices.filter(
     (service) =>
       service.name.toLowerCase().includes(filterText.toLowerCase()) ||
       service.location.toLowerCase().includes(filterText.toLowerCase())
   );
 
-  // Function to handle phone call
   const handleCall = (phoneNumber: string | null): void => {
     if (!phoneNumber) {
       Alert.alert("Info", "No contact phone number available.");
@@ -114,25 +106,24 @@ export default function PetServicesScreen() {
       );
   };
 
-  // Function to open location in maps
-  const handleLocation = (
-    location: string,
-    coordinates: Coordinates | null
-  ): void => {
-    if (!coordinates) {
-      Alert.alert("Info", "This is a remote service with no physical location.");
-      return;
+  const handleLocation = (mapLink?: string, coordinates?: Coordinates | null): void => {
+    if (mapLink) {
+      Linking.openURL(mapLink).catch((err) =>
+        Alert.alert("Error", "Failed to open map link: " + err.message)
+      );
+    } else if (coordinates) {
+      const { latitude, longitude } = coordinates;
+      const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+      Linking.openURL(url).catch((err) =>
+        Alert.alert("Error", "Failed to open maps: " + err.message)
+      );
+    } else {
+      Alert.alert("Info", "No specific location available for this service.");
     }
-    const { latitude, longitude } = coordinates;
-    const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-    Linking.openURL(url).catch((err) =>
-      Alert.alert("Error", "Failed to open maps: " + err.message)
-    );
   };
 
-  // Function to share pet service
   const handleShare = (service: PetService): void => {
-    const message = `${service.name}\nType: ${service.type}\nLocation: ${service.location}\nPhone: ${service.contactPhone || "N/A"}\nHours: ${service.hours}\nServices: ${service.servicesOffered.join(", ")}`;
+    const message = `${service.name}\nType: ${service.type}\nLocation: ${service.location}\nPhone: ${service.phone || "N/A"}\nHours: ${service.hours}\nServices: ${service.servicesOffered.join(", ")}`;
     Linking.openURL(`sms:&body=${encodeURIComponent(message)}`).catch((err) =>
       Alert.alert("Error", "Failed to share: " + err.message)
     );
@@ -154,10 +145,10 @@ export default function PetServicesScreen() {
         <Text style={styles.serviceDescription}>{item.description}</Text>
       </TouchableOpacity>
       <View style={styles.actionButtons}>
-        {item.contactPhone && (
+        {item.phone && (
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => handleCall(item.contactPhone)}
+            onPress={() => handleCall(item.phone)}
           >
             <MaterialIcons name="phone" size={20} color="#3470E4" />
             <Text style={styles.actionText}>Call</Text>
@@ -165,7 +156,7 @@ export default function PetServicesScreen() {
         )}
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => handleLocation(item.location, item.coordinates)}
+          onPress={() => handleLocation(item.mapLink, item.coordinates)}
         >
           <MaterialIcons name="location-on" size={20} color="#3470E4" />
           <Text style={styles.actionText}>Map</Text>
@@ -205,13 +196,17 @@ export default function PetServicesScreen() {
         }}
       />
 
-      <FlatList
-        data={filteredServices}
-        renderItem={renderServiceItem}
-        keyExtractor={(item: PetService) => item.id}
-        contentContainerStyle={styles.listContentContainer}
-        ListHeaderComponentStyle={styles.headerListStyle}
-      />
+      {loading ? (
+        <Text style={styles.loadingText}>Loading pet services...</Text>
+      ) : (
+        <FlatList
+          data={filteredServices}
+          renderItem={renderServiceItem}
+          keyExtractor={(item: PetService) => item.id}
+          contentContainerStyle={styles.listContentContainer}
+          ListHeaderComponentStyle={styles.headerListStyle}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -299,5 +294,12 @@ const styles = StyleSheet.create({
   },
   headerListStyle: {
     marginBottom: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginTop: 20,
+    fontFamily: "Exo-Regular",
   },
 });

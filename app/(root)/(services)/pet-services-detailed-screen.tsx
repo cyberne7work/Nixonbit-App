@@ -12,10 +12,10 @@ import {
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 
-// Define TypeScript interfaces for pet service data (reused from list screen)
+// Define TypeScript interfaces for pet service data
 interface Coordinates {
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface PetService {
@@ -24,10 +24,14 @@ interface PetService {
   type: string;
   location: string;
   description: string;
-  contactPhone: string | null;
-  coordinates: Coordinates | null;
+  phone: string | null; // Changed from contactPhone to match API
+  coordinates?: Coordinates | null; // Optional, not in API
   hours: string;
   servicesOffered: string[];
+  mapLink?: string; // From API
+  bookingLink?: string; // From API
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function PetServicesDetailedScreen() {
@@ -36,8 +40,6 @@ export default function PetServicesDetailedScreen() {
   const service: PetService | null = params.service
     ? JSON.parse(params.service as string)
     : null;
-
-  console.log("Service data:", service);
 
   if (!service) {
     return (
@@ -48,11 +50,11 @@ export default function PetServicesDetailedScreen() {
   }
 
   const handleCall = (): void => {
-    if (!service.contactPhone) {
+    if (!service.phone) {
       Alert.alert("Info", "No contact phone number available.");
       return;
     }
-    const url = `tel:${service.contactPhone}`;
+    const url = `tel:${service.phone}`;
     Linking.canOpenURL(url)
       .then((supported) => {
         if (supported) {
@@ -67,22 +69,36 @@ export default function PetServicesDetailedScreen() {
   };
 
   const handleLocation = (): void => {
-    if (!service.coordinates) {
-      Alert.alert("Info", "This is a remote service with no physical location.");
-      return;
+    if (service.mapLink) {
+      Linking.openURL(service.mapLink).catch((err) =>
+        Alert.alert("Error", "Failed to open map link: " + err.message)
+      );
+    } else if (service.coordinates) {
+      const { latitude, longitude } = service.coordinates;
+      const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+      Linking.openURL(url).catch((err) =>
+        Alert.alert("Error", "Failed to open maps: " + err.message)
+      );
+    } else {
+      Alert.alert("Info", "No specific location available for this service.");
     }
-    const { latitude, longitude } = service.coordinates;
-    const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-    Linking.openURL(url).catch((err) =>
-      Alert.alert("Error", "Failed to open maps: " + err.message)
-    );
   };
 
   const handleShare = (): void => {
-    const message = `${service.name}\nType: ${service.type}\nLocation: ${service.location}\nPhone: ${service.contactPhone || "N/A"}\nHours: ${service.hours}\nServices: ${service.servicesOffered.join(", ")}`;
+    const message = `${service.name}\nType: ${service.type}\nLocation: ${service.location}\nPhone: ${service.phone || "N/A"}\nHours: ${service.hours}\nServices: ${service.servicesOffered.join(", ")}`;
     Linking.openURL(`sms:&body=${encodeURIComponent(message)}`).catch((err) =>
       Alert.alert("Error", "Failed to share: " + err.message)
     );
+  };
+
+  const handleBooking = (): void => {
+    if (service.bookingLink) {
+      Linking.openURL(service.bookingLink).catch((err) =>
+        Alert.alert("Error", "Failed to open booking link: " + err.message)
+      );
+    } else {
+      Alert.alert("Info", "No booking link available for this service.");
+    }
   };
 
   return (
@@ -104,7 +120,7 @@ export default function PetServicesDetailedScreen() {
           <Text style={styles.type}>Type: {service.type}</Text>
           <Text style={styles.location}>{service.location}</Text>
           <Text style={styles.contactPhone}>
-            Phone: {service.contactPhone || "Not available"}
+            Phone: {service.phone || "Not available"}
           </Text>
           <Text style={styles.hours}>Hours: {service.hours}</Text>
 
@@ -123,7 +139,7 @@ export default function PetServicesDetailedScreen() {
           </View>
 
           <View style={styles.actionButtons}>
-            {service.contactPhone && (
+            {service.phone && (
               <TouchableOpacity style={styles.actionButton} onPress={handleCall}>
                 <MaterialIcons name="phone" size={20} color="#3470E4" />
                 <Text style={styles.actionText}>Call</Text>
@@ -142,7 +158,7 @@ export default function PetServicesDetailedScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.bookButton}>
+          <TouchableOpacity style={styles.bookButton} onPress={handleBooking}>
             <Text style={styles.bookButtonText}>Book Appointment</Text>
           </TouchableOpacity>
         </View>

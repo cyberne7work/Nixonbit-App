@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,8 @@ import {
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
 import { CustomTextInput } from "@/components/CustomTextInput";
-
+import { apiRequest } from '@/utils/api';
+import { useAuth } from '@clerk/clerk-expo';
 // Define TypeScript interfaces for the medical resource data
 interface Coordinates {
   latitude: number;
@@ -23,9 +24,9 @@ interface MedicalResource {
   id: string;
   name: string;
   type: string;
-  location: string;
+  address: string;
   description: string;
-  contactPhone: string;
+  phone: string;
   coordinates: Coordinates | null;
   services: string[];
 }
@@ -80,9 +81,35 @@ const mockMedicalResources: MedicalResource[] = [
 export default function MedicalAssistanceScreen() {
   const router = useRouter();
   const [filterText, setFilterText] = useState<string>("");
+      const [reportsLoading, setReportsLoading] = useState(true);
+  
+  const [medicalResources, setMedicalResources] =
+    useState<MedicalResource[]>(mockMedicalResources);
+
+      useEffect(() => {
+        (async () => {
+          try {
+            const response = await apiRequest('/medical-facilities', 'GET', null, '');
+            if (response.success) {
+              console.log(response.data.facilities);
+              setMedicalResources(response.data.facilities);
+            } else {
+              Alert.alert(
+                'Error',
+                response.message || 'Failed to fetch facilities.'
+              );
+            }
+          } catch (error) {
+            console.error('Error fetching  facilities:', error);
+            Alert.alert('Error', 'Failed to fetch facilities.');
+          } finally {
+            setReportsLoading(false);
+          }
+        })();
+      }, []);
 
   // Filter medical resources based on name or location
-  const filteredResources: MedicalResource[] = mockMedicalResources.filter(
+  const filteredResources: MedicalResource[] = medicalResources.filter(
     (resource) =>
       resource.name.toLowerCase().includes(filterText.toLowerCase()) ||
       resource.location.toLowerCase().includes(filterText.toLowerCase())
@@ -133,7 +160,16 @@ export default function MedicalAssistanceScreen() {
   const navigateToJobDetail = (item) => {
     router.push({
       pathname: "/(root)/(services)/medical-assistance-detailed-screen",
-      params: { item: JSON.stringify(item) },
+      params: { item: JSON.stringify({
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        address: item.address,
+        description: item.description,
+        phone: item.phone,
+        coordinates: item.coordinates,
+        services: item.services,
+      }) },
     });
   };
 
@@ -142,14 +178,14 @@ export default function MedicalAssistanceScreen() {
       <TouchableOpacity onPress={() => navigateToJobDetail(item)}>
         <Text style={styles.resourceName}>{item.name}</Text>
         <Text style={styles.resourceType}>{item.type}</Text>
-        <Text style={styles.resourceLocation}>{item.location}</Text>
+        <Text style={styles.resourceLocation}>{item.address}</Text>
         <Text style={styles.resourceDescription}>{item.description}</Text>
       </TouchableOpacity>
       <View style={styles.actionButtons}>
-        {item.contactPhone && (
+        {item.phone && (
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => handleCall(item.contactPhone)}
+            onPress={() => handleCall(item.phone)}
           >
             <MaterialIcons name="phone" size={20} color="#3470E4" />
             <Text style={styles.actionText}>Call</Text>

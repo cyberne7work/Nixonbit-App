@@ -22,9 +22,9 @@ interface MedicalResource {
   id: string;
   name: string;
   type: string;
-  location: string;
+  address: string;
   description: string;
-  contactPhone: string;
+  phone: string;
   coordinates: Coordinates | null;
   services: string[];
 }
@@ -104,9 +104,9 @@ export default function MedicalAssistanceDetailedScreen() {
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.resourceDetails}>
           <Text style={styles.type}>Type: {resource.type}</Text>
-          <Text style={styles.location}>{resource.location}</Text>
+          <Text style={styles.location}>{resource.address}</Text>
           <Text style={styles.contactPhone}>
-            Phone: {resource.contactPhone || "Not available"}
+            Phone: {resource.phone || "Not available"}
           </Text>
 
           <View style={styles.descriptionContainer}>
@@ -126,7 +126,7 @@ export default function MedicalAssistanceDetailedScreen() {
           )}
 
           <View style={styles.actionButtons}>
-            {resource.contactPhone && (
+            {resource.phone && (
               <TouchableOpacity style={styles.actionButton} onPress={handleCall}>
                 <MaterialIcons name="phone" size={20} color="#3470E4" />
                 <Text style={styles.actionText}>Call</Text>

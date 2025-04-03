@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,81 +12,79 @@ import {
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { CustomTextInput } from "@/components/CustomTextInput";
+import { apiRequest } from "@/utils/api"; // Assuming you have this utility
 
-// Mock data for job listings with added fields
-const mockJobListings = [
-  {
-    id: "1",
-    title: "Senior Software Engineer SD",
-    company: "TechCorp",
-    location: "San Francisco, CA",
-    description:
-      "Join our innovative team to design and develop cutting-edge applications.",
-    type: "Full-Time",
-    salary: "$140,000 - $180,000",
-    requirements: [
-      "5+ years of software development experience",
-      "Proficiency in React Native and JavaScript",
-    ],
-    postedDate: "2025-02-10",
-    contactPhone: "415-555-1234", // Added for call feature
-    coordinates: { latitude: 37.7749, longitude: -122.4194 }, // For location
-  },
-  {
-    id: "2",
-    title: "Data Scientist",
-    company: "Data Innovators",
-    location: "New York, NY",
-    description:
-      "Seeking a skilled Data Scientist to analyze complex datasets.",
-    type: "Contract",
-    salary: "$70 - $100 per hour",
-    requirements: [
-      "Advanced degree in Statistics or Computer Science",
-      "Expertise in Python",
-    ],
-    postedDate: "2025-02-15",
-    contactPhone: "212-555-5678",
-    coordinates: { latitude: 40.7128, longitude: -74.0060 },
-  },
-  {
-    id: "3",
-    title: "Frontend Developer",
-    company: "Creative Solutions",
-    location: "Remote",
-    description:
-      "Create beautiful, responsive web applications remotely.",
-    type: "Part-Time",
-    salary: "$90,000 - $120,000 (pro-rated)",
-    requirements: ["3+ years of frontend experience", "Expertise in React.js"],
-    postedDate: "2025-02-18",
-    contactPhone: "800-555-9012",
-    coordinates: null, // Remote job, no specific coordinates
-  },
-  {
-    id: "4",
-    title: "DevOps Engineer",
-    company: "CloudMasters",
-    location: "Seattle, WA",
-    description:
-      "Build and maintain robust CI/CD pipelines and cloud infrastructure.",
-    type: "Full-Time",
-    salary: "$130,000 - $160,000",
-    requirements: ["Experience with Docker", "Knowledge of CI/CD tools"],
-    postedDate: "2025-02-12",
-    contactPhone: "206-555-3456",
-    coordinates: { latitude: 47.6062, longitude: -122.3321 },
-  },
-];
+// Define TypeScript interface for job listing
+interface Coordinates {
+  latitude?: number;
+  longitude?: number;
+}
+
+interface JobListing {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  description: string;
+  type: string;
+  salary: string;
+  requirements: string[];
+  postedDate: string;
+  contactPhone?: string; // Optional, not in API but in mock
+  coordinates?: Coordinates | null; // Optional, not in API but in mock
+  mapLink?: string; // From API
+  applyLink?: string; // From API
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function JobListingScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const jobListings = params.jobListings
-    ? JSON.parse(params.jobListings)
-    : mockJobListings;
-
+  const [jobListings, setJobListings] = useState<JobListing[]>([]);
   const [filterText, setFilterText] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchJobListings = async () => {
+      try {
+        const response = await apiRequest('/job-listings', 'GET', null, '');
+        if (response.success) {
+          setJobListings(response.data.jobs);
+        } else {
+          Alert.alert(
+            'Error',
+            response.message || 'Failed to fetch job listings.'
+          );
+          // Fallback to mock data if API fails
+          setJobListings([
+            {
+              id: "1",
+              title: "Senior Software Engineer SD",
+              company: "TechCorp",
+              location: "San Francisco, CA",
+              description: "Join our innovative team to design and develop cutting-edge applications.",
+              type: "Full-Time",
+              salary: "$140,000 - $180,000",
+              requirements: ["5+ years of software development experience", "Proficiency in React Native and JavaScript"],
+              postedDate: "2025-02-10",
+              contactPhone: "415-555-1234",
+              coordinates: { latitude: 37.7749, longitude: -122.4194 },
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }
+          ]);
+        }
+      } catch (error) {
+        console.error('Error fetching job listings:', error);
+        Alert.alert('Error', 'Failed to fetch job listings.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJobListings();
+  }, []);
 
   const filteredJobListings = jobListings.filter(
     (job) =>
@@ -94,16 +92,18 @@ export default function JobListingScreen() {
       job.company.toLowerCase().includes(filterText.toLowerCase())
   );
 
-  const navigateToJobDetail = (job) => {
-    console.log(job);
+  const navigateToJobDetail = (job: JobListing) => {
     router.push({
       pathname: "/(root)/(services)/explore-detailed-screen",
       params: { job: JSON.stringify(job) },
     });
   };
 
-  // Function to handle phone call
-  const handleCall = (phoneNumber) => {
+  const handleCall = (phoneNumber?: string) => {
+    if (!phoneNumber) {
+      Alert.alert("Info", "No contact phone number available.");
+      return;
+    }
     const url = `tel:${phoneNumber}`;
     Linking.canOpenURL(url)
       .then((supported) => {
@@ -116,28 +116,30 @@ export default function JobListingScreen() {
       .catch((err) => Alert.alert("Error", "Failed to make a call: " + err.message));
   };
 
-  // Function to open location in maps
-  const handleLocation = (location, coordinates) => {
-    if (!coordinates) {
+  const handleLocation = (location: string, coordinates?: Coordinates | null, mapLink?: string) => {
+    if (mapLink) {
+      Linking.openURL(mapLink).catch((err) =>
+        Alert.alert("Error", "Failed to open map link: " + err.message)
+      );
+    } else if (coordinates) {
+      const { latitude, longitude } = coordinates;
+      const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+      Linking.openURL(url).catch((err) =>
+        Alert.alert("Error", "Failed to open maps: " + err.message)
+      );
+    } else {
       Alert.alert("Info", "This is a remote job with no specific location.");
-      return;
     }
-    const { latitude, longitude } = coordinates;
-    const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-    Linking.openURL(url).catch((err) =>
-      Alert.alert("Error", "Failed to open maps: " + err.message)
-    );
   };
 
-  // Function to share job (optional feature)
-  const handleShare = (job) => {
+  const handleShare = (job: JobListing) => {
     const message = `${job.title} at ${job.company}\nLocation: ${job.location}\nSalary: ${job.salary}\nApply now!`;
     Linking.openURL(`sms:&body=${encodeURIComponent(message)}`).catch((err) =>
       Alert.alert("Error", "Failed to share: " + err.message)
     );
   };
 
-  const renderJobItem = ({ item }) => (
+  const renderJobItem = ({ item }: { item: JobListing }) => (
     <View style={styles.jobItem}>
       <TouchableOpacity onPress={() => navigateToJobDetail(item)}>
         <Text style={styles.jobTitle}>{item.title}</Text>
@@ -157,7 +159,7 @@ export default function JobListingScreen() {
         )}
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => handleLocation(item.location, item.coordinates)}
+          onPress={() => handleLocation(item.location, item.coordinates, item.mapLink)}
         >
           <MaterialIcons name="location-on" size={20} color="#3470E4" />
           <Text style={styles.actionText}>Map</Text>
@@ -194,13 +196,17 @@ export default function JobListingScreen() {
         }}
       />
 
-      <FlatList
-        data={filteredJobListings}
-        renderItem={renderJobItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContentContainer}
-        ListHeaderComponentStyle={styles.headerListStyle}
-      />
+      {loading ? (
+        <Text style={styles.loadingText}>Loading job listings...</Text>
+      ) : (
+        <FlatList
+          data={filteredJobListings}
+          renderItem={renderJobItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContentContainer}
+          ListHeaderComponentStyle={styles.headerListStyle}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -227,7 +233,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 10,
     top: "50%",
-    transform: [{ translateY: -12 }], // Vertically center the icon
+    transform: [{ translateY: -12 }],
   },
   listContentContainer: {
     paddingBottom: 20,
@@ -282,6 +288,13 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     color: "#3470E4",
     fontSize: 14,
+    fontFamily: "Exo-Regular",
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginTop: 20,
     fontFamily: "Exo-Regular",
   },
 });

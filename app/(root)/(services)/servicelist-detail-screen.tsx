@@ -75,7 +75,7 @@ export default function ProfileDetails() {
           <Text style={styles.name}>{profile.name}</Text>
           <Text style={styles.rating}>Rating: {profile.rating} / 5</Text>
           <Text style={styles.experience}>
-            {profile.experience} years of experience
+            {profile.experience} years of experiences
           </Text>
 
           {/* Call Button */}

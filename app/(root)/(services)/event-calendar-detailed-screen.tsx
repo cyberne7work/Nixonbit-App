@@ -25,7 +25,7 @@ interface Event {
   date: string;
   location: string;
   description: string;
-  contactPhone: string | null;
+  contact: string | null;
   coordinates: Coordinates | null;
   organizer: string;
 }
@@ -48,11 +48,11 @@ export default function EventCalendarDetailedScreen() {
   }
 
   const handleCall = (): void => {
-    if (!event.contactPhone) {
+    if (!event.contact) {
       Alert.alert("Info", "No contact phone number available.");
       return;
     }
-    const url = `tel:${event.contactPhone}`;
+    const url = `tel:${event.contact}`;
     Linking.canOpenURL(url)
       .then((supported) => {
         if (supported) {
@@ -111,7 +111,7 @@ export default function EventCalendarDetailedScreen() {
           <Text style={styles.date}>Date: {event.date}</Text>
           <Text style={styles.location}>{event.location}</Text>
           <Text style={styles.contactPhone}>
-            Phone: {event.contactPhone || "Not available"}
+            Phone: {event.contact || "Not available"}
           </Text>
           <Text style={styles.organizer}>Organizer: {event.organizer}</Text>
 
@@ -121,7 +121,7 @@ export default function EventCalendarDetailedScreen() {
           </View>
 
           <View style={styles.actionButtons}>
-            {event.contactPhone && (
+            {event.contact && (
               <TouchableOpacity style={styles.actionButton} onPress={handleCall}>
                 <MaterialIcons name="phone" size={20} color="#3470E4" />
                 <Text style={styles.actionText}>Call</Text>

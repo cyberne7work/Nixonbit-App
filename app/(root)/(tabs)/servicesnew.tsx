@@ -57,15 +57,15 @@ const servicesData = [
     category: "Local Services",
     navigation: "/(services)/public-places-screen",
   },
-  {
-    id: "7",
-    name: "Transport Info",
-    iconName: "directions-bus",
-    description:
-      "Access real-time public transit schedules, shared mobility options, and parking availability.",
-    category: "Transportation",
-    navigation: "/(services)/transport-info",
-  },
+  // {
+  //   id: "7",
+  //   name: "Transport Info",
+  //   iconName: "directions-bus",
+  //   description:
+  //     "Access real-time public transit schedules, shared mobility options, and parking availability.",
+  //   category: "Transportation",
+  //   navigation: "/(services)/transport-info",
+  // },
   {
     id: "8",
     name: "Lost & Found",
@@ -84,15 +84,15 @@ const servicesData = [
     category: "Events",
     navigation: "/(services)/event-calendar-screen",
   },
-  {
-    id: "10",
-    name: "Accessibility Options",
-    iconName: "accessible",
-    description:
-      "Plan routes and find services with accessibility options for people with disabilities.",
-    category: "Accessibility",
-    navigation: "/(services)/accessibility-options-screen",
-  },
+  // {
+  //   id: "10",
+  //   name: "Accessibility Options",
+  //   iconName: "accessible",
+  //   description:
+  //     "Plan routes and find services with accessibility options for people with disabilities.",
+  //   category: "Accessibility",
+  //   navigation: "/(services)/accessibility-options-screen",
+  // },
   {
     id: "11",
     name: "Weather Updates",
@@ -155,15 +155,15 @@ const servicesData = [
     category: "Pet Care",
     navigation: "/(services)/pet-services-screen",
   },
-  {
-    id: "19",
-    name: "Volunteer Opportunities",
-    iconName: "volunteer-activism",
-    description:
-      "Join community initiatives and volunteer programs to make a difference.",
-    category: "Community Services",
-    navigation: "/(services)/volunteer-opportunities-screen",
-  },
+  // {
+  //   id: "19",
+  //   name: "Volunteer Opportunities",
+  //   iconName: "volunteer-activism",
+  //   description:
+  //     "Join community initiatives and volunteer programs to make a difference.",
+  //   category: "Community Services",
+  //   navigation: "/(services)/volunteer-opportunities-screen",
+  // },
   {
     id: "20",
     name: "Shopping Deals",

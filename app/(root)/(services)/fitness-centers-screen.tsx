@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
 import { CustomTextInput } from "@/components/CustomTextInput";
+import { apiRequest } from '@/utils/api';
+import { useAuth } from '@clerk/clerk-expo';
 
 // Define TypeScript interfaces for fitness center data
 interface Coordinates {
@@ -25,7 +27,7 @@ interface FitnessCenter {
   type: string; // e.g., "Gym", "Yoga Studio", "CrossFit"
   location: string;
   description: string;
-  contactPhone: string | null;
+  phone: string | null;
   coordinates: Coordinates | null;
   hours: string; // e.g., "6 AM - 10 PM"
   amenities: string[]; // e.g., ["Pool", "Sauna", "Weights"]
@@ -85,10 +87,35 @@ const mockFitnessCenters: FitnessCenter[] = [
 
 export default function FitnessCentersScreen() {
   const router = useRouter();
+    const { getToken } = useAuth();
+  
   const [filterText, setFilterText] = useState<string>("");
-
+  const [fitnessCenters, setFitnessCenters] = useState<FitnessCenter[]>([]);
+    const [reportsLoading, setReportsLoading] = useState(true);
+  
+  useEffect(() => {
+    (async () => {
+      try {
+        const response = await apiRequest('/fitness-centers', 'GET', null, '');
+        if (response.success) {
+          console.log(response.data.centers);
+          setFitnessCenters(response.data.centers);
+        } else {
+          Alert.alert(
+            'Error',
+            response.message || 'Failed to fetch fitnessCenters.'
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching  fitnessCenters:', error);
+        Alert.alert('Error', 'Failed to fetch fitnessCenters.');
+      } finally {
+        setReportsLoading(false);
+      }
+    })();
+  }, []);
   // Filter fitness centers based on name or location
-  const filteredCenters: FitnessCenter[] = mockFitnessCenters.filter(
+  const filteredCenters: FitnessCenter[] = fitnessCenters.filter(
     (center) =>
       center.name.toLowerCase().includes(filterText.toLowerCase()) ||
       center.location.toLowerCase().includes(filterText.toLowerCase())
@@ -144,7 +171,17 @@ export default function FitnessCentersScreen() {
         onPress={() =>
           router.push({
             pathname: "/(root)/(services)/fitness-centers-detailed-screen",
-            params: { center: JSON.stringify(item) },
+            params: { center: JSON.stringify({
+              id: item.id,
+              name: item.name,
+              type: item.type,
+              location: item.location,
+              description: item.description,
+              phone: item.phone,
+              coordinates: item.coordinates,
+              hours: item.hours,
+              amenities: item.amenities,
+            }) },
           })
         }
       >
@@ -154,10 +191,10 @@ export default function FitnessCentersScreen() {
         <Text style={styles.centerDescription}>{item.description}</Text>
       </TouchableOpacity>
       <View style={styles.actionButtons}>
-        {item.contactPhone && (
+        {item.phone && (
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => handleCall(item.contactPhone)}
+            onPress={() => handleCall(item.phone)}
           >
             <MaterialIcons name="phone" size={20} color="#3470E4" />
             <Text style={styles.actionText}>Call</Text>

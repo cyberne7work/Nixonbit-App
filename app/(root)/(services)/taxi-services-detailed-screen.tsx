@@ -19,36 +19,40 @@ interface Coordinates {
   longitude: number;
 }
 
-interface CarDetails {
+interface Car {
   make: string;
   model: string;
   year: number;
   licensePlate: string;
   color: string;
-  imageUrl: string;
+  lastService: string;
+  imageUrl?: string; // Optional since it's added manually
 }
 
 interface DriverInfo {
   name: string;
-  licenseNumber: string;
+  license: string;
   phone: string;
   rating: number;
 }
 
 interface OwnerInfo {
   name: string;
-  contactPhone: string;
+  phone: string;
   email: string;
 }
 
 interface TaxiService {
   id: string;
-  carDetails: CarDetails;
-  driverInfo: DriverInfo;
-  ownerInfo: OwnerInfo;
-  currentLocation: Coordinates | null;
+  car: Car;
+  driver: DriverInfo;
+  owner: OwnerInfo;
   availability: string;
-  lastServiceDate: string;
+  mapLink: string;
+  bookingLink: string;
+  createdAt: string;
+  updatedAt: string;
+  currentLocation?: Coordinates | null;
 }
 
 export default function TaxiServicesDetailedScreen() {
@@ -57,8 +61,6 @@ export default function TaxiServicesDetailedScreen() {
   const service: TaxiService | null = params.taxiService
     ? JSON.parse(params.taxiService as string)
     : null;
-
-  console.log("Service data:", service);
 
   if (!service) {
     return (
@@ -69,7 +71,7 @@ export default function TaxiServicesDetailedScreen() {
   }
 
   const handleDriverCall = (): void => {
-    const url = `tel:${service.driverInfo.phone}`;
+    const url = `tel:${service.driver.phone}`;
     Linking.canOpenURL(url)
       .then((supported) => {
         if (supported) {
@@ -84,7 +86,7 @@ export default function TaxiServicesDetailedScreen() {
   };
 
   const handleOwnerCall = (): void => {
-    const url = `tel:${service.ownerInfo.contactPhone}`;
+    const url = `tel:${service.owner.phone}`;
     Linking.canOpenURL(url)
       .then((supported) => {
         if (supported) {
@@ -111,7 +113,7 @@ export default function TaxiServicesDetailedScreen() {
   };
 
   const handleShare = (): void => {
-    const message = `Taxi Details:\nCar: ${service.carDetails.make} ${service.carDetails.model}\nDriver: ${service.driverInfo.name} (${service.driverInfo.phone})\nOwner: ${service.ownerInfo.name} (${service.ownerInfo.contactPhone})\nAvailability: ${service.availability}`;
+    const message = `Taxi Details:\nCar: ${service.car.make} ${service.car.model}\nDriver: ${service.driver.name} (${service.driver.phone})\nOwner: ${service.owner.name} (${service.owner.phone})\nAvailability: ${service.availability}`;
     Linking.openURL(`sms:&body=${encodeURIComponent(message)}`).catch((err) =>
       Alert.alert("Error", "Failed to share: " + err.message)
     );
@@ -127,14 +129,16 @@ export default function TaxiServicesDetailedScreen() {
           <MaterialIcons name="arrow-back" size={24} color="#002045" />
         </TouchableOpacity>
         <Text style={styles.header} numberOfLines={1}>
-          {`${service.carDetails.make} ${service.carDetails.model}`}
+          {`${service.car.make} ${service.car.model}`}
         </Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.serviceDetails}>
           <Image
-            source={{ uri: service.carDetails.imageUrl }}
+            source={{
+              uri: service.car.imageUrl || `https://via.placeholder.com/150/cccccc/ffffff?text=${service.car.make}+${service.car.model}`,
+            }}
             style={styles.carImage}
             resizeMode="cover"
           />
@@ -142,54 +146,42 @@ export default function TaxiServicesDetailedScreen() {
           {/* Car Details */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Car Details</Text>
+            <Text style={styles.detailText}>Make: {service.car.make}</Text>
+            <Text style={styles.detailText}>Model: {service.car.model}</Text>
+            <Text style={styles.detailText}>Year: {service.car.year}</Text>
             <Text style={styles.detailText}>
-              Make: {service.carDetails.make}
+              License Plate: {service.car.licensePlate}
             </Text>
+            <Text style={styles.detailText}>Color: {service.car.color}</Text>
             <Text style={styles.detailText}>
-              Model: {service.carDetails.model}
-            </Text>
-            <Text style={styles.detailText}>
-              Year: {service.carDetails.year}
-            </Text>
-            <Text style={styles.detailText}>
-              License Plate: {service.carDetails.licensePlate}
-            </Text>
-            <Text style={styles.detailText}>
-              Color: {service.carDetails.color}
-            </Text>
-            <Text style={styles.detailText}>
-              Last Service: {service.lastServiceDate}
+              Last Service: {new Date(service.car.lastService).toLocaleDateString()}
             </Text>
           </View>
 
           {/* Driver Info */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Driver Information</Text>
+            <Text style={styles.detailText}>Name: {service.driver.name}</Text>
             <Text style={styles.detailText}>
-              Name: {service.driverInfo.name}
+              License: {service.driver.license}
             </Text>
             <Text style={styles.detailText}>
-              License: {service.driverInfo.licenseNumber}
+              Phone: {service.driver.phone}
             </Text>
             <Text style={styles.detailText}>
-              Phone: {service.driverInfo.phone}
-            </Text>
-            <Text style={styles.detailText}>
-              Rating: {service.driverInfo.rating}/5
+              Rating: {service.driver.rating}/5
             </Text>
           </View>
 
           {/* Owner Info */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Owner Information</Text>
+            <Text style={styles.detailText}>Name: {service.owner.name}</Text>
             <Text style={styles.detailText}>
-              Name: {service.ownerInfo.name}
+              Phone: {service.owner.phone}
             </Text>
             <Text style={styles.detailText}>
-              Phone: {service.ownerInfo.contactPhone}
-            </Text>
-            <Text style={styles.detailText}>
-              Email: {service.ownerInfo.email}
+              Email: {service.owner.email}
             </Text>
           </View>
 
@@ -227,9 +219,14 @@ export default function TaxiServicesDetailedScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.bookButton}>
-            <Text style={styles.bookButtonText}>Book Now</Text>
-          </TouchableOpacity>
+          {service.bookingLink && (
+            <TouchableOpacity
+              style={styles.bookButton}
+              onPress={() => Linking.openURL(service.bookingLink)}
+            >
+              <Text style={styles.bookButtonText}>Book Now</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -304,23 +301,23 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: "row" as const,
-    flexWrap: "wrap" as const, // Allow buttons to wrap to next line
-    justifyContent: "center" as const, // Center buttons instead of space-around
+    flexWrap: "wrap" as const,
+    justifyContent: "center" as const,
     marginTop: 20,
     marginBottom: 20,
-    paddingHorizontal: 10, // Add padding to prevent edge overflow
+    paddingHorizontal: 10,
   },
   actionButton: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     padding: 5,
-    margin: 5, // Add margin to space buttons evenly
-    minWidth: 100, // Ensure buttons have a minimum width for readability
+    margin: 5,
+    minWidth: 100,
   },
   actionText: {
     marginLeft: 5,
     color: "#3470E4",
-    fontSize: 14, // Reduced font size slightly to fit better
+    fontSize: 14,
     fontFamily: "Exo-Regular",
   },
   bookButton: {

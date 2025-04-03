@@ -24,7 +24,7 @@ interface FitnessCenter {
   type: string;
   location: string;
   description: string;
-  contactPhone: string | null;
+  phone: string | null;
   coordinates: Coordinates | null;
   hours: string;
   amenities: string[];
@@ -48,11 +48,11 @@ export default function FitnessCentersDetailedScreen() {
   }
 
   const handleCall = (): void => {
-    if (!center.contactPhone) {
+    if (!center.phone) {
       Alert.alert("Info", "No contact phone number available.");
       return;
     }
-    const url = `tel:${center.contactPhone}`;
+    const url = `tel:${center.phone}`;
     Linking.canOpenURL(url)
       .then((supported) => {
         if (supported) {
@@ -104,7 +104,7 @@ export default function FitnessCentersDetailedScreen() {
           <Text style={styles.type}>Type: {center.type}</Text>
           <Text style={styles.location}>{center.location}</Text>
           <Text style={styles.contactPhone}>
-            Phone: {center.contactPhone || "Not available"}
+            Phone: {center.phone || "Not available"}
           </Text>
           <Text style={styles.hours}>Hours: {center.hours}</Text>
 
@@ -123,7 +123,7 @@ export default function FitnessCentersDetailedScreen() {
           </View>
 
           <View style={styles.actionButtons}>
-            {center.contactPhone && (
+            {center.phone && (
               <TouchableOpacity style={styles.actionButton} onPress={handleCall}>
                 <MaterialIcons name="phone" size={20} color="#3470E4" />
                 <Text style={styles.actionText}>Call</Text>
