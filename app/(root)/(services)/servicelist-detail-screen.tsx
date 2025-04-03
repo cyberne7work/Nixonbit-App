@@ -20,7 +20,7 @@ import { CustomTextInput } from "@/components/CustomTextInput";
 export default function ProfileDetails() {
   const route = useRouter();
   const params = useLocalSearchParams();
-  const profile = JSON.parse(params.profile || "{}"); // Parse the serialized profile
+  const profile = JSON.parse(params.item || "{}"); // Parse the serialized profile
   const [isLoggedIn, setIsLoggedIn] = useState(true); // Simulate login state
   const [rating, setRating] = useState(0); // User-given rating
   const [review, setReview] = useState(""); // User-written review

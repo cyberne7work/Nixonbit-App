@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   SafeAreaView,
   View,
@@ -6,81 +6,91 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  Image,
-  Modal,
-  TextInput,
   Alert,
-} from "react-native";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import { CustomTextInput } from "@/components/CustomTextInput";
-import { useRouter } from "expo-router";
-
-const lostAndFoundData = [
-  {
-    id: "1",
-    type: "Lost",
-    title: "Black Wallet",
-    description: "Lost near Central Park on 25th Jan.",
-    contact: "+1 234 567 890",
-    image: "https://images.pexels.com/photos/915915/pexels-photo-915915.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-  },
-  {
-    id: "2",
-    type: "Found",
-    title: "Golden Retriever",
-    description: "Found near Baker Street on 20th Jan.",
-    contact: "+1 345 678 901",
-    image: "https://images.pexels.com/photos/1490908/pexels-photo-1490908.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
-  },
-];
+  ActivityIndicator,
+} from 'react-native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { CustomTextInput } from '@/components/CustomTextInput';
+import { useRouter, useFocusEffect } from 'expo-router'; // Add useFocusEffect
+import LostAndFoundItemCard from '@/components/LostAndFoundItemCard';
+import { useAuth } from '@clerk/clerk-expo';
+import { apiRequest } from '@/utils/api';
 
 export default function LostAndFoundScreen() {
-  const [items, setItems] = useState(lostAndFoundData);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [searchValue, setSearchValue] = useState("");
-  const [newItem, setNewItem] = useState({
-    type: "Lost",
-    title: "",
-    description: "",
-    contact: "",
-    image: "",
-  });
+  const [items, setItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
   const router = useRouter();
+  const { getToken } = useAuth();
 
-  const handleAddItem = () => {
-    if (!newItem.title || !newItem.description || !newItem.contact) {
-      Alert.alert("Error", "Please fill in all the fields.");
-      return;
+  // Fetch items from API
+  const fetchItems = async () => {
+    try {
+      setIsLoading(true);
+      const token = await getToken();
+      const response = await apiRequest('/lost-and-found', 'GET', null, token);
+      if (response.success) {
+        console.log(response.data);
+        setItems(response.data.items);
+      } else {
+        throw new Error(response.message || 'Failed to fetch items');
+      }
+    } catch (error) {
+      console.error('Error fetching items:', error);
+      Alert.alert('Error', 'Failed to load items. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-
-    setItems([
-      ...items,
-      {
-        ...newItem,
-        id: (items.length + 1).toString(),
-        image: "https://via.placeholder.com/100",
-      },
-    ]);
-    setNewItem({
-      type: "Lost",
-      title: "",
-      description: "",
-      contact: "",
-      image: "",
-    });
-    setIsModalVisible(false);
   };
 
+  // Delete item from API
+  const deleteItem = async (id) => {
+    try {
+      setIsLoading(true);
+      const token = await getToken();
+      const response = await apiRequest(`/lost-and-found/${id}`, 'DELETE', null, token);
+      
+      if (response.success) {
+        setItems(items.filter((item) => item.id !== id));
+        Alert.alert('Success', 'Item deleted successfully');
+      } else {
+        throw new Error(response.message || 'Failed to delete item');
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      Alert.alert('Error', 'Failed to delete item. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Use useFocusEffect to refresh when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchItems();
+    }, [])
+  );
+
   const renderItem = ({ item }) => (
-    <View style={styles.itemCard}>
-      <Image source={{ uri: item.image }} style={styles.itemImage} />
-      <View style={styles.itemDetails}>
-        <Text style={styles.itemType}>{item.type}</Text>
-        <Text style={styles.itemTitle}>{item.title}</Text>
-        <Text style={styles.itemDescription}>{item.description}</Text>
-        <Text style={styles.itemContact}>Contact: {item.contact}</Text>
-      </View>
-    </View>
+    <LostAndFoundItemCard
+      item={item}
+      onEdit={() => {
+        router.push({
+          pathname: '/(root)/(services)/add-lost-and-found-item',
+          params: { item: JSON.stringify(item) },
+        });
+      }}
+      onDelete={(id) => {
+        Alert.alert(
+          'Confirm Delete',
+          'Are you sure you want to delete this item?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Delete', onPress: () => deleteItem(id), style: 'destructive' },
+          ]
+        );
+      }}
+    />
   );
 
   return (
@@ -99,27 +109,45 @@ export default function LostAndFoundScreen() {
       {/* Search Input */}
       <CustomTextInput
         label={null}
-        placeholder={"Search"}
+        placeholder={'Search'}
         value={searchValue}
         onChangeText={setSearchValue}
         style={styles.searchInput}
         autoCapitalize="none"
       />
 
+      {/* Loading Indicator */}
+      {isLoading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3470E4" />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      )}
+
       {/* List of Lost and Found Items */}
       <FlatList
         data={items.filter((item) =>
-          item.title.toLowerCase().includes(searchValue.toLowerCase())
+          item.item.toLowerCase().includes(searchValue.toLowerCase())
         )}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={
+          !isLoading ? (
+            <Text style={styles.emptyText}>No items found</Text>
+          ) : null
+        }
+        refreshing={isLoading}
+        onRefresh={fetchItems}
       />
 
       {/* Add Item Button */}
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => router.push("/(root)/(services)/add-lost-and-found-item")}
+        onPress={() =>
+          router.push('/(root)/(services)/add-lost-and-found-item')
+        }
+        disabled={isLoading}
       >
         <MaterialIcons name="add" size={30} color="#fff" />
       </TouchableOpacity>
@@ -130,153 +158,65 @@ export default function LostAndFoundScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: '#f5f5f5',
   },
   headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     height: 40,
-    justifyContent: "center",
+    justifyContent: 'center',
   },
   header: {
     fontSize: 18,
-    color: "#002045",
-    fontWeight: "bold",
-    fontFamily: "Exo-Regular",
-    textAlign: "center",
+    color: '#002045',
+    fontWeight: 'bold',
+    fontFamily: 'Exo-Regular',
+    textAlign: 'center',
   },
   backButton: {
-    position: "absolute",
+    position: 'absolute',
     left: 10,
-    top: "50%",
-    transform: [{ translateY: -12 }], // Vertically center the icon
+    top: '50%',
+    transform: [{ translateY: -12 }],
   },
   searchInput: {
     marginHorizontal: 10,
     marginTop: 10,
   },
   listContainer: {
-    paddingBottom: 20,
+    paddingBottom: 80,
   },
-  itemCard: {
-    flexDirection: "row",
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 10,
-    margin: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  loadingContainer: {
+    alignItems: 'center',
+    padding: 20,
   },
-  itemImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 10,
-    marginRight: 10,
-  },
-  itemDetails: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  itemType: {
-    fontSize: 14,
-    color: "#3470E4",
-    marginBottom: 5,
-    fontFamily: "Exo-Regular",
-  },
-  itemTitle: {
+  loadingText: {
+    marginTop: 10,
     fontSize: 16,
-    color: "#002045",
-    fontFamily: "Exo-Regular",
+    color: '#666',
+    fontFamily: 'Exo-Regular',
   },
-  itemDescription: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 5,
-    fontFamily: "Exo-Regular",
-  },
-  itemContact: {
-    fontSize: 14,
-    color: "#002045",
-    fontFamily: "Exo-Regular",
+  emptyText: {
+    textAlign: 'center',
+    padding: 20,
+    color: '#666',
+    fontSize: 16,
+    fontFamily: 'Exo-Regular',
   },
   addButton: {
-    backgroundColor: "#3470E4",
+    backgroundColor: '#3470E4',
     width: 60,
     height: 60,
     borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    position: "absolute",
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
     bottom: 20,
     right: 20,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 20,
-    width: "90%",
-  },
-  modalHeader: {
-    fontSize: 18,
-    color: "#002045",
-    marginBottom: 10,
-    fontFamily: "Exo-Regular",
-
-  },
-  typeButton: {
-    padding: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    marginBottom: 10,
-    alignItems: "center",
-  },
-  typeButtonSelected: {
-    backgroundColor: "#3470E4",
-    borderColor: "#3470E4",
-  },
-  typeButtonText: {
-    fontSize: 14,
-    color: "#002045",
-    fontFamily: "Exo-Regular",
-
-  },
-  saveButton: {
-    backgroundColor: "#3470E4",
-    padding: 15,
-    borderRadius: 5,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  saveButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: "Exo-Regular",
-  },
-  cancelButton: {
-    backgroundColor: "#ccc",
-    padding: 15,
-    borderRadius: 5,
-    alignItems: "center",
-  },
-  cancelButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: "Exo-Regular",
-
   },
 });

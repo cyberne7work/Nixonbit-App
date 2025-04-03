@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,165 +7,145 @@ import {
   SafeAreaView,
   TouchableOpacity,
   StyleSheet,
-  Modal,
-  TextInput,
   ActivityIndicator,
 } from "react-native";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { router } from "expo-router";
-import { CustomTextInput } from "@/components/CustomTextInput";
 import IncidentCard from "@/components/IncidentCard";
+import { useAuth } from '@clerk/clerk-expo';
+import { apiRequest } from "@/utils/api";
 
-const dummyIncidents = [
-  {
-    id: "1",
-    title: "Car Accident",
-    description: "Two vehicles collided at the intersection.",
-    type: "Accident",
-    location: { latitude: 37.7749, longitude: -122.4194 },
-  },
-  {
-    id: "2",
-    title: "Fire Breakout",
-    description: "Fire reported in a residential building.",
-    type: "Fire",
-    location: { latitude: 34.0522, longitude: -118.2437 },
-  },
-  {
-    id: "3",
-    title: "Gas Leak",
-    description: "Gas leakage detected in an apartment complex.",
-    type: "Hazard",
-    location: { latitude: 40.7128, longitude: -74.0060 },
-  },
-  {
-    id: "4",
-    title: "Medical Emergency",
-    description: "Person fainted at a bus stop.",
-    type: "Medical",
-    location: { latitude: 51.5074, longitude: -0.1278 },
-  },
-  {
-    id: "5",
-    title: "Robbery Attempt",
-    description: "Suspicious individuals seen breaking into a store.",
-    type: "Crime",
-    location: { latitude: 48.8566, longitude: 2.3522 },
-  },
-  {
-    id: "6",
-    title: "Flooded Road",
-    description: "Heavy rains caused flooding on main street.",
-    type: "Weather",
-    location: { latitude: 35.6895, longitude: 139.6917 },
-  },
-  {
-    id: "7",
-    title: "Power Outage",
-    description: "Entire neighborhood lost electricity.",
-    type: "Utility",
-    location: { latitude: 41.8781, longitude: -87.6298 },
-  },
-  {
-    id: "8",
-    title: "Lost Child",
-    description: "A child was found wandering alone in the mall.",
-    type: "Missing Person",
-    location: { latitude: 28.7041, longitude: 77.1025 },
-  },
-  {
-    id: "9",
-    title: "Earthquake Tremors",
-    description: "Mild earthquake tremors felt in the area.",
-    type: "Earthquake",
-    location: { latitude: -33.8688, longitude: 151.2093 },
-  },
-  {
-    id: "10",
-    title: "Chemical Spill",
-    description: "Chemical leakage in a nearby factory.",
-    type: "Hazard",
-    location: { latitude: 19.0760, longitude: 72.8777 },
-  },
-];
-
+interface Incident {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  location: { latitude: number; longitude: number };
+  address?: string;
+  status?: string;
+}
 
 export default function IncidentReportScreen() {
+  const { getToken } = useAuth();
   const [location, setLocation] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [incidents, setIncidents] = useState(dummyIncidents);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isMapVisible, setIsMapVisible] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [newIncident, setNewIncident] = useState({
-    title: "",
-    description: "",
-    type: "",
-    location: null,
-  });
+  const [locationLoading, setLocationLoading] = useState(true);
+  const [incidentsLoading, setIncidentsLoading] = useState(true);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
 
+  // Memoize fetchIncidents to prevent recreation on every render
+  const fetchIncidents = useCallback(async (retries = 3, delay = 2000) => {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const token = await getToken();
+        const response = await apiRequest('/incidents', 'GET', null, token);
+        if (response.success) {
+          return response;
+        } else {
+          throw new Error(response.message || "Failed to fetch incidents.");
+        }
+      } catch (error) {
+        console.error(`Attempt ${attempt} - Error fetching incidents:`, error);
+        if (attempt === retries) throw error;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }, []); // getToken is now a dependency of fetchIncidents
+
+  // Fetch location
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permission Required", "Allow location access.");
-        return;
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permission Required", "Allow location access.");
+          setLocationLoading(false);
+          return;
+        }
+
+        let { coords } = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+          timeInterval: 10000,
+        });
+        setLocation(coords);
+      } catch (error) {
+        console.error("Error fetching location:", error);
+        Alert.alert("Location Error", "Failed to fetch location.");
+      } finally {
+        setLocationLoading(false);
       }
-  
-      let { coords } = await Location.getCurrentPositionAsync({});
-      setLocation(coords);
-      setLoading(false);
     })();
-  }, []); // Adding [] makes it run only once when the component mounts
-  
-  
+  }, []);
 
-  // Function to save or update an incident report
-  const handleSaveOrUpdateIncident = () => {
-    if (!newIncident.title || !newIncident.description || !newIncident.type) {
-      Alert.alert("Error", "Please fill in all fields.");
-      return;
-    }
+  // Fetch incidents on mount
+  useEffect(() => {
+    let isMounted = true; // To prevent state updates after unmount
 
-    if (!selectedLocation) {
-      Alert.alert(
-        "Select Location",
-        "Please select the location of the incident."
-      );
-      return;
-    }
+    const loadIncidents = async () => {
+      try {
+        const response = await fetchIncidents();
+        if (isMounted) {
+          setIncidents(response.data.incidents.map((incident: any) => ({
+            id: incident.id,
+            title: incident.title,
+            description: incident.description,
+            type: incident.type,
+            location: incident.location,
+            address: incident.address,
+            status: incident.status,
+            createdAt: incident.createdAt,
+          })));
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error("Error fetching incidents:", error);
+          Alert.alert(
+            "Error",
+            "Failed to fetch incidents. Please check your network and try again.",
+            [
+              {
+                text: "Retry",
+                onPress: async () => {
+                  try {
+                    const response = await fetchIncidents();
+                    if (isMounted) {
+                      setIncidents(response.data.incidents.map((incident: any) => ({
+                        id: incident.id,
+                        title: incident.title,
+                        description: incident.description,
+                        type: incident.type,
+                        location: incident.location,
+                        address: incident.address,
+                        status: incident.status,
+                        createdAt: incident.createdAt,
+                      })));
+                    }
+                  } catch (err) {
+                    console.error("Retry failed:", err);
+                  }
+                },
+              },
+              { text: "Cancel", style: "cancel" },
+            ]
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIncidentsLoading(false);
+        }
+      }
+    };
 
-    const updatedIncident = { ...newIncident, location: selectedLocation };
+    loadIncidents();
 
-    if (newIncident.id) {
-      setIncidents(
-        incidents.map((incident) =>
-          incident.id === newIncident.id ? updatedIncident : incident
-        )
-      );
-    } else {
-      setIncidents([
-        ...incidents,
-        { ...updatedIncident, id: (incidents.length + 1).toString() },
-      ]);
-    }
+    return () => {
+      isMounted = false; // Cleanup to prevent state updates after unmount
+    };
+  }, [fetchIncidents]); // Depend on fetchIncidents instead of getToken
 
-    setIsModalVisible(false);
-    setNewIncident({ title: "", description: "", type: "", location: null });
-    setSelectedLocation(null);
-  };
-
-  // Function to edit an incident report
-  const handleEditIncident = (incident) => {
-    setNewIncident(incident);
-    setSelectedLocation(incident.location);
-    setIsModalVisible(true);
-  };
-
-  // Function to delete an incident report
-  const handleDeleteIncident = (id) => {
+  // Function to delete an incident
+  const handleDeleteIncident = async (id: string) => {
     Alert.alert(
       "Delete Incident",
       "Are you sure you want to delete this report?",
@@ -173,8 +153,20 @@ export default function IncidentReportScreen() {
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
-          onPress: () => {
-            setIncidents(incidents.filter((incident) => incident.id !== id));
+          onPress: async () => {
+            try {
+              const token = await getToken();
+              const response = await apiRequest(`/incidents/${id}`, 'DELETE', null, token);
+              if (response.success) {
+                setIncidents(incidents.filter((incident) => incident.id !== id));
+                Alert.alert("Success", "Incident deleted successfully.");
+              } else {
+                Alert.alert("Error", response.message || "Failed to delete incident.");
+              }
+            } catch (error) {
+              console.error("Error deleting incident:", error);
+              Alert.alert("Error", "Failed to delete incident.");
+            }
           },
         },
       ]
@@ -210,7 +202,7 @@ export default function IncidentReportScreen() {
             <Marker coordinate={location} title="Current Location" />
           )}
         </MapView>
-        {loading && (
+        {locationLoading && (
           <ActivityIndicator
             size="large"
             color="#3470E4"
@@ -221,23 +213,30 @@ export default function IncidentReportScreen() {
 
       {/* Incident List */}
       <Text style={styles.sectionTitle}>Reported Incidents</Text>
-      <FlatList
-        contentContainerStyle={styles.listContent}
-        data={incidents}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <IncidentCard 
-            incident={item} 
-            onEdit={handleEditIncident} 
-            onDelete={handleDeleteIncident}
-          />
-        )}
-        ListEmptyComponent={
-          <View>
-            <Text style={styles.emptyListText}>No incidents reported yet.</Text>
-          </View>
-        }
-      />
+      {incidentsLoading ? (
+        <ActivityIndicator size="large" color="#3470E4" style={{ marginVertical: 20 }} />
+      ) : (
+        <FlatList
+          contentContainerStyle={styles.listContent}
+          data={incidents}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <IncidentCard 
+              incident={item} 
+              onEdit={(incident) => router.push({
+                pathname: "/(root)/(services)/incident-form-screen",
+                params: { incident: JSON.stringify(incident) },
+              })}
+              onDelete={handleDeleteIncident}
+            />
+          )}
+          ListEmptyComponent={
+            <View>
+              <Text style={styles.emptyListText}>No incidents reported yet.</Text>
+            </View>
+          }
+        />
+      )}
 
       {/* Add Incident Button */}
       <TouchableOpacity
@@ -250,7 +249,6 @@ export default function IncidentReportScreen() {
   );
 }
 
-// Styles
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f5f5f5" },
   headerContainer: {
@@ -278,28 +276,14 @@ const styles = StyleSheet.create({
     left: "50%",
     transform: [{ translateX: -12 }, { translateY: -12 }],
   },
-  sectionTitle: { fontSize: 18, color: "#002045", margin: 15 },
+  sectionTitle: { fontSize: 18, color: "#002045", margin: 15, fontFamily: "Exo-Regular" },
   listContent: { flexGrow: 1 },
-  incidentItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#f9f9f9",
-    padding: 15,
-    marginVertical: 8,
-    borderRadius: 10,
-    elevation: 3,
-    marginHorizontal: 15,
-  },
-  incidentTitle: { fontSize: 16, fontWeight: "bold", color: "#002045" },
-  incidentDescription: { fontSize: 14, color: "#666" },
-  incidentType: { fontSize: 14, color: "#3470E4" },
-  iconContainer: { flexDirection: "row", alignItems: "center", gap: 10 },
   emptyListText: {
     fontSize: 16,
     color: "#666",
     textAlign: "center",
     marginVertical: 20,
+    fontFamily: "Exo-Regular",
   },
   addButton: {
     position: "absolute",
@@ -312,58 +296,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     elevation: 5,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-  },
-  modalContent: {
-    width: "90%",
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 20,
-    elevation: 5,
-  },
-  modalHeader: {
-    fontSize: 18,
-    fontFamily: "Exo-Bold",
-    color: "#002045",
-    textAlign: "center",
-    marginBottom: 10,
-  },
-  input: {
-    width: "100%",
-    padding: 10,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  saveButton: {
-    backgroundColor: "#3470E4",
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  saveButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: "Exo-Regular",
-    fontWeight: "bold",
-  },
-  cancelButton: {
-    backgroundColor: "#ccc",
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  cancelButtonText: {
-    color: "#002045",
-    fontSize: 16,
-    fontWeight: "bold",
-    fontFamily: "Exo-Regular",
   },
 });

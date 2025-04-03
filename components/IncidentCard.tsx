@@ -7,6 +7,7 @@ import { fetchAddressFromGoogle } from "@/utils"; // Ensure this function is imp
 export default function IncidentCard({ incident, onEdit, onDelete }) {
   const router = useRouter();
   const [address, setAddress] = useState("Loading address...");
+  console.log(incident)
 
   // Fetch address when the component mounts
   useEffect(() => {
@@ -28,7 +29,7 @@ export default function IncidentCard({ incident, onEdit, onDelete }) {
             description: incident.description,
             type: incident.type,
             address:address,
-            date: incident.date,
+            createdAt: incident.createdAt,
             location: incident.location,
           }) },
         })
@@ -43,7 +44,7 @@ export default function IncidentCard({ incident, onEdit, onDelete }) {
             }}>
             <Text style={styles.incidentTitle}>{incident.title}</Text>
             <Text style={styles.incidentDate}>
-            {incident.date ? new Date(incident.date).toLocaleDateString() : "Unknown Date"}
+            {incident.createdAt ? new Date(incident.createdAt).toLocaleDateString() : "Unknown Date"}
           </Text>
             </View>
           <Text style={styles.incidentDescription}>{incident.description}</Text>

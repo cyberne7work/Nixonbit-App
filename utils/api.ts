@@ -13,19 +13,21 @@ interface ApiResponse<T> {
 export const apiRequest = async <T>(
   endpoint: string,
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
-  data: any = null
+  data: any = null,
+  token?: string // Token is now an optional parameter
 ): Promise<T> => {
     console.log("API_BASE_URL", EXPO_PUBLIC_API_BASE_URL);
     console.log('endpoint', endpoint);
     console.log('method', method);
     console.log('data', data);
+    console.log('token', token);
   // Note: useAuth must be called within a component or custom hook.
   // We'll handle token retrieval outside this function for flexibility.
-//   const token = await getAuthToken();
+
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    // Authorization: `Bearer ${token}`,
+    Authorization: `Bearer ${token}`,
   };
 
   const config: RequestInit = {

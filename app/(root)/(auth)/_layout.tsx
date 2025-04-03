@@ -1,5 +1,5 @@
-import { Stack } from "expo-router";
-import "react-native-reanimated";
+import { Stack } from 'expo-router';
+import 'react-native-reanimated';
 
 export default function AuthLayout() {
   return (
@@ -49,6 +49,12 @@ export default function AuthLayout() {
           headerShown: false,
         }}
         name="reset-password"
+      />
+      <Stack.Screen
+        options={{
+          headerShown: false,
+        }}
+        name="edit-profile-screen"
       />
     </Stack>
   );

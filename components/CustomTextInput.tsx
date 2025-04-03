@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 
 export const CustomTextInput = ({
@@ -21,9 +20,8 @@ export const CustomTextInput = ({
   keyboardType = "default",
   maxLength = 50,
   style = {},
-  multiple = false,
-  autoCapitalize
-  
+  multiline = false, // Changed from 'multiple' to 'multiline'
+  autoCapitalize,
 }) => {
   const [isPasswordHidden, setIsPasswordHidden] = useState(secureTextEntry);
 
@@ -33,12 +31,12 @@ export const CustomTextInput = ({
       <View
         style={[
           styles.inputContainer,
+          multiline && styles.multilineInputContainer, // Added conditional styling
           errorMessage && styles.errorBorder,
         ]}
       >
-
         <TextInput
-          style={[styles.input, style]}
+          style={[styles.input, multiline && styles.multilineInput, style]}
           placeholder={placeholder}
           placeholderTextColor="#aaa"
           secureTextEntry={isPasswordHidden}
@@ -46,11 +44,9 @@ export const CustomTextInput = ({
           onChangeText={onChangeText}
           keyboardType={keyboardType}
           maxLength={maxLength}
-          placeHolderStyle={{
-            fontFamily: "Exo-Regular",
-          }}
-          multiline={multiple}
+          multiline={multiline}
           autoCapitalize={autoCapitalize}
+          textAlignVertical={multiline ? "top" : "center"} // Align text to top for multiline
         />
         {showToggleIcon && secureTextEntry && (
           <TouchableOpacity
@@ -58,10 +54,10 @@ export const CustomTextInput = ({
             style={styles.toggleIconContainer}
           >
             <MaterialIcons
-            name={isPasswordHidden ? "visibility" : "visibility-off"}
-            size={24}
-            color="#666"
-          />
+              name={isPasswordHidden ? "visibility" : "visibility-off"}
+              size={24}
+              color="#666"
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -87,9 +83,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
     borderColor: "#ccc",
+    // borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
-    height: 48,
+    height: 48, // Default height for single-line inputs
+  },
+  multilineInputContainer: {
+    height: 'auto', // Remove fixed height for multiline
+    minHeight: 120, // Minimum height for multiline
+    alignItems: "flex-start", // Align content to top for multiline
   },
   input: {
     flex: 1,
@@ -97,12 +99,13 @@ const styles = StyleSheet.create({
     color: "#333",
     fontFamily: Platform.OS === "ios" ? "System" : "Roboto",
   },
+  multilineInput: {
+    minHeight: 120, // Ensure input can grow
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
   toggleIconContainer: {
     marginLeft: 8,
-  },
-  toggleIcon: {
-    fontSize: 16,
-    color: "#555",
   },
   errorText: {
     marginTop: 4,

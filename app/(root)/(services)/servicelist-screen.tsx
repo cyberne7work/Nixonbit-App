@@ -1,10 +1,10 @@
 import { CustomTextInput } from "@/components/CustomTextInput";
 import ServiceManProfileCard from "@/components/ServiceManProfileCard";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useRouter,useLocalSearchParams } from "expo-router";
+import React, { useState ,useEffect} from "react";
 import { FlatList, StyleSheet, View, Text, SafeAreaView,TouchableOpacity } from "react-native";
-import { useLocalSearchParams } from "expo-router";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import { apiRequest } from '@/utils/api';
 
 const serviceMen = [
   {
@@ -62,6 +62,30 @@ export default function ServiceManProfileList() {
   const [searchValue, setSearchValue] = useState("");
   const params = useLocalSearchParams();
   const Provider = params.category || "Providers";
+  const [serviceProviders, setServiceProviders] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const params = {
+          serviceCategory: Provider, // Example parameter
+        };
+  
+        const queryString = new URLSearchParams(params).toString(); // Convert params to query string
+        const endpoint = `/service-providers?${queryString}`;
+  
+        const servicesResponse = await apiRequest(endpoint, 'GET', null, '');
+        const data = servicesResponse.data.providers || []; // Adjust based on your API response structure
+        console.log("Service Providers:", data);
+        setServiceProviders(data);
+      } catch (error) {
+        console.error('[ERROR]: Failed to fetch data:', error);
+      }
+    };
+  
+    fetchData();
+  }, []);
+  
 
   const handleProfilePress = (profile) => {
     router.push({
@@ -90,16 +114,17 @@ export default function ServiceManProfileList() {
         }}
       />
       <FlatList
-        data={serviceMen}
+        data={serviceProviders}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <ServiceManProfileCard
-            profilePic={item.profilePic}
+            profilePic={item.profile_picture}
             name={item.name}
-            rating={item.rating}
+            rating={item.average_rating}
             experience={item.experience}
-            phoneNumber={item.phoneNumber}
+            phoneNumber={item.phone}
             onProfilePress={() => handleProfilePress(item)}
+            services={item.services[0]}
           />
         )}
         contentContainerStyle={styles.list}

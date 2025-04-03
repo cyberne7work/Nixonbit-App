@@ -14,54 +14,122 @@ import {
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
-import * as Contacts from "expo-contacts";
 import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { CustomTextInput } from "@/components/CustomTextInput";
-import * as SMS from "expo-sms"; // Import SMS module
+import * as SMS from "expo-sms";
+import { useAuth } from '@clerk/clerk-expo';
+import { apiRequest } from "@/utils/api";
 
-const dummyContacts = [
-  { id: "1", name: "John Doe", phone: "+91 8797971422", relation: "Father" },
-  { id: "2", name: "Jane Doe", phone: "+91 8603678862", relation: "Mother" },
-  {
-    id: "3",
-    name: "Mike Johnson",
-    phone: "+91 7004008576",
-    relation: "Brother",
-  },
-  {
-    id: "4",
-    name: "Sarah Williams",
-    phone: "+91 9631862492",
-    relation: "Sister",
-  },
-];
+// Define the type for emergency contacts
+interface EmergencyContact {
+  id: string;
+  contactName: string;
+  phoneNumber: string;
+  relation: string;
+}
 
 export default function EmergencyAlertScreen() {
+  const { getToken } = useAuth();
   const [location, setLocation] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [contacts, setContacts] = useState(dummyContacts);
+  const [locationLoading, setLocationLoading] = useState(true); // Separate loading state for location
+  const [contactsLoading, setContactsLoading] = useState(true); // Separate loading state for contacts
+  const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newContact, setNewContact] = useState({
-    name: "",
-    phone: "",
+    id: "",
+    contactName: "",
+    phoneNumber: "",
     relation: "",
   });
 
+  // Fetch location
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Required",
-          "Allow location access to use emergency features."
-        );
-        return;
-      }
+      try {
+        // Request location permissions
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert(
+            "Permission Required",
+            "Allow location access to use emergency features.",
+            [
+              { text: "OK", onPress: () => setLocationLoading(false) }
+            ]
+          );
+          return;
+        }
 
-      let { coords } = await Location.getCurrentPositionAsync({});
-      setLocation(coords);
-      setLoading(false);
+        // Fetch location with a timeout of 10 seconds
+        let locationResult = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+          timeInterval: 10000, // Timeout after 10 seconds
+        });
+        setLocation(locationResult.coords);
+      } catch (error) {
+        console.error("Error fetching location:", error);
+        Alert.alert(
+          "Location Error",
+          "Failed to fetch location. Please ensure location services are enabled.",
+          [
+            { text: "OK", onPress: () => setLocationLoading(false) }
+          ]
+        );
+      } finally {
+        setLocationLoading(false);
+      }
+    })();
+  }, []);
+
+  // Fetch emergency contacts
+  const fetchEmergencyContacts = async (retries = 3, delay = 2000) => {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const token = await getToken();
+        const response = await apiRequest('/emergency-contacts', 'GET', null, token);
+        if (response.success) {
+          return response;
+        } else {
+          throw new Error(response.message || "Failed to fetch emergency contacts.");
+        }
+      } catch (error) {
+        console.error(`Attempt ${attempt} - Error fetching emergency contacts:`, error);
+        if (attempt === retries) throw error;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const response = await fetchEmergencyContacts();
+        setContacts(response.data.emergencyContacts.map((contact: any) => ({
+          id: contact.id,
+          contactName: contact.contactName,
+          phoneNumber: contact.phoneNumber,
+          relation: contact.relation,
+        })));
+      } catch (error) {
+        console.error("Error fetching emergency contacts:", error);
+        Alert.alert(
+          "Error",
+          "Failed to fetch emergency contacts. Please check your network and try again.",
+          [
+            { text: "Retry", onPress: () => fetchEmergencyContacts().then(response => {
+              setContacts(response.data.emergencyContacts.map((contact: any) => ({
+                id: contact.id,
+                contactName: contact.contactName,
+                phoneNumber: contact.phoneNumber,
+                relation: contact.relation,
+              })));
+            })},
+            { text: "Cancel", style: "cancel" },
+          ]
+        );
+      } finally {
+        setContactsLoading(false);
+      }
     })();
   }, []);
 
@@ -77,7 +145,7 @@ export default function EmergencyAlertScreen() {
 
     const isAvailable = await SMS.isAvailableAsync();
     if (isAvailable) {
-      const contactNumbers = contacts.map((contact) => contact.phone);
+      const contactNumbers = contacts.map((contact) => contact.phoneNumber);
       await SMS.sendSMSAsync(contactNumbers, message);
       Alert.alert(
         "Location Sent",
@@ -88,43 +156,96 @@ export default function EmergencyAlertScreen() {
     }
   };
 
-  const handleCallContact = (number) => {
+  const handleCallContact = (number: string) => {
     Linking.openURL(`tel:${number}`);
   };
 
-  const handleAddOrUpdateContact = () => {
-    if (!newContact.name || !newContact.phone || !newContact.relation) {
+  const handleAddOrUpdateContact = async () => {
+    if (!newContact.contactName || !newContact.phoneNumber || !newContact.relation) {
       Alert.alert("Error", "Please fill in all fields.");
       return;
     }
 
-    if (newContact.id) {
-      // Editing existing contact
-      setContacts(
-        contacts.map((contact) =>
-          contact.id === newContact.id ? newContact : contact
-        )
-      );
-    } else {
-      // Adding new contact
-      setContacts([
-        ...contacts,
-        { ...newContact, id: (contacts.length + 1).toString() },
-      ]);
-    }
+    try {
+      const token = await getToken();
+      let response;
 
-    setIsModalVisible(false);
-    setNewContact({ name: "", phone: "", relation: "" });
+      if (newContact.id) {
+        response = await apiRequest(
+          `/emergency-contacts/${newContact.id}`,
+          'PUT',
+          {
+            contactName: newContact.contactName,
+            phoneNumber: `+91 ${newContact.phoneNumber}`,
+            relation: newContact.relation,
+          },
+          token
+        );
+
+        if (response.success) {
+          setContacts(
+            contacts.map((contact) =>
+              contact.id === newContact.id
+                ? {
+                    id: newContact.id,
+                    contactName: newContact.contactName,
+                    phoneNumber: `+91 ${newContact.phoneNumber}`,
+                    relation: newContact.relation,
+                  }
+                : contact
+            )
+          );
+          Alert.alert("Success", "Emergency contact updated successfully.");
+        }
+      } else {
+        response = await apiRequest(
+          '/emergency-contacts',
+          'POST',
+          {
+            contactName: newContact.contactName,
+            phoneNumber: `+91 ${newContact.phoneNumber}`,
+            relation: newContact.relation,
+          },
+          token
+        );
+
+        if (response.success) {
+          setContacts([
+            ...contacts,
+            {
+              id: response.data.id,
+              contactName: response.data.contactName,
+              phoneNumber: response.data.phoneNumber,
+              relation: response.data.relation,
+            },
+          ]);
+          Alert.alert("Success", "Emergency contact added successfully.");
+        }
+      }
+
+      if (!response.success) {
+        Alert.alert("Error", response.message || "Failed to save emergency contact.");
+      }
+    } catch (error) {
+      console.error("Error saving emergency contact:", error);
+      Alert.alert("Error", "Failed to save emergency contact. Please check your network and try again.");
+    } finally {
+      setIsModalVisible(false);
+      setNewContact({ id: "", contactName: "", phoneNumber: "", relation: "" });
+    }
   };
 
-  // Function to edit contact
-  const handleEditContact = (contact) => {
-    setNewContact(contact);
+  const handleEditContact = (contact: EmergencyContact) => {
+    setNewContact({
+      id: contact.id,
+      contactName: contact.contactName,
+      phoneNumber: contact.phoneNumber.replace("+91 ", ""),
+      relation: contact.relation,
+    });
     setIsModalVisible(true);
   };
 
-  // Function to delete contact
-  const handleDeleteContact = (id) => {
+  const handleDeleteContact = async (id: string) => {
     Alert.alert(
       "Delete Contact",
       "Are you sure you want to delete this contact?",
@@ -132,8 +253,26 @@ export default function EmergencyAlertScreen() {
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
-          onPress: () => {
-            setContacts(contacts.filter((contact) => contact.id !== id));
+          onPress: async () => {
+            try {
+              const token = await getToken();
+              const response = await apiRequest(
+                `/emergency-contacts/${id}`,
+                'DELETE',
+                null,
+                token
+              );
+
+              if (response.success) {
+                setContacts(contacts.filter((contact) => contact.id !== id));
+                Alert.alert("Success", "Emergency contact deleted successfully.");
+              } else {
+                Alert.alert("Error", response.message || "Failed to delete emergency contact.");
+              }
+            } catch (error) {
+              console.error("Error deleting emergency contact:", error);
+              Alert.alert("Error", "Failed to delete emergency contact. Please check your network and try again.");
+            }
           },
         },
       ]
@@ -169,7 +308,7 @@ export default function EmergencyAlertScreen() {
         >
           {location && <Marker coordinate={location} title="Your Location" />}
         </MapView>
-        {loading && (
+        {locationLoading && (
           <ActivityIndicator
             size="large"
             color="#3470E4"
@@ -181,13 +320,13 @@ export default function EmergencyAlertScreen() {
       <View style={styles.callButtonContainer}>
         <TouchableOpacity
           style={styles.callButtonSOS}
-          onPress={() => handleCallContact("911")}
+          onPress={() => handleCallContact("112")}
         >
           <Text style={styles.callButtonText}>SOS</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.callButtonPolice}
-          onPress={() => handleCallContact("911")}
+          onPress={() => handleCallContact("112")}
         >
           <Text style={styles.callButtonText}>112</Text>
         </TouchableOpacity>
@@ -201,36 +340,41 @@ export default function EmergencyAlertScreen() {
 
       {/* Contact List */}
       <Text style={styles.sectionTitle}>Emergency Contacts</Text>
-      <FlatList
-        contentContainerStyle={styles.listContent}
-        data={contacts}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.contactItem}>
+      {contactsLoading ? (
+        <ActivityIndicator size="large" color="#3470E4" style={{ marginVertical: 20 }} />
+      ) : (
+        <FlatList
+          contentContainerStyle={styles.listContent}
+          data={contacts}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.contactItem}>
+              <View>
+                <Text style={styles.contactName}>{item.contactName}</Text>
+                <Text style={styles.contactNumber}>{item.phoneNumber}</Text>
+                <Text style={styles.contactRelation}>
+                  Relation: {item.relation}
+                </Text>
+              </View>
+              <View style={styles.iconContainer}>
+                <TouchableOpacity onPress={() => handleEditContact(item)}>
+                  <MaterialIcons name="edit" size={24} color="#3470E4" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDeleteContact(item.id)}>
+                  <MaterialIcons name="delete" size={24} color="#FF0000" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+          ListEmptyComponent={
             <View>
-              <Text style={styles.contactName}>{item.name}</Text>
-              <Text style={styles.contactNumber}>{item.phone}</Text>
-              <Text style={styles.contactRelation}>
-                Relation: {item.relation}
+              <Text style={styles.emptyListText}>
+                No contacts found. Please add your contacts to enable SOS and Share Location.
               </Text>
             </View>
-            <View style={styles.iconContainer}>
-              <TouchableOpacity onPress={() => handleEditContact(item)}>
-                <MaterialIcons name="edit" size={24} color="#3470E4" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDeleteContact(item.id)}>
-                <MaterialIcons name="delete" size={24} color="#FF0000" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-        ListEmptyComponent={
-            <View>
-                <Text style={styles.emptyListText}>No contacts found. Please add your contacts to enable SOS and Share Location.</Text>
-  
-            </View>
-        }
-      />
+          }
+        />
+      )}
 
       {/* Add Contact Button */}
       <TouchableOpacity
@@ -248,21 +392,20 @@ export default function EmergencyAlertScreen() {
             <CustomTextInput
               label="Contact Name"
               placeholder="Enter contact name"
-              value={newContact.name}
+              value={newContact.contactName}
               onChangeText={(text) =>
-                setNewContact({ ...newContact, name: text })
+                setNewContact({ ...newContact, contactName: text })
               }
               style={styles.input}
-              autoCapitalize={"words"}
+              autoCapitalize="words"
             />
             <CustomTextInput
               label="Phone Number"
               placeholder="Phone Number"
-              value={newContact.phone}
+              value={newContact.phoneNumber}
               onChangeText={(text) => {
-                // Remove non-numeric characters and limit to 10 digits
                 const formattedText = text.replace(/\D/g, "").slice(0, 10);
-                setNewContact({ ...newContact, phone: formattedText });
+                setNewContact({ ...newContact, phoneNumber: formattedText });
               }}
               keyboardType="phone-pad"
               style={styles.input}
@@ -299,7 +442,6 @@ export default function EmergencyAlertScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f5f5f5" },
-
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -319,8 +461,6 @@ const styles = StyleSheet.create({
     top: "50%",
     transform: [{ translateY: -12 }],
   },
-
-  // Map
   mapContainer: { width: "100%", height: 300 },
   loader: {
     position: "absolute",
@@ -328,8 +468,6 @@ const styles = StyleSheet.create({
     left: "50%",
     transform: [{ translateX: -12 }, { translateY: -12 }],
   },
-
-  // Contacts
   sectionTitle: {
     fontSize: 18,
     fontFamily: "Exo-Regular",
@@ -354,8 +492,6 @@ const styles = StyleSheet.create({
   contactName: { fontSize: 16, fontFamily: "Exo-Regular", color: "#002045" },
   contactNumber: { fontSize: 14, color: "#666" },
   contactRelation: { fontSize: 14, color: "#3470E4" },
-
-  // Add Contact Button
   addButton: {
     position: "absolute",
     bottom: 20,
@@ -372,8 +508,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
   },
-
-  // Modal
   modalContainer: {
     flex: 1,
     justifyContent: "center",
@@ -460,13 +594,6 @@ const styles = StyleSheet.create({
     width: 120,
     height: 50,
   },
-  callbuttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: "Exo-Bold",
-    fontWeight: "bold",
-    marginLeft: 10,
-  },
   callButtonContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -488,13 +615,13 @@ const styles = StyleSheet.create({
   iconContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10, // Adds spacing between edit and delete buttons
+    gap: 10,
   },
-  emptyListText:{
+  emptyListText: {
     fontSize: 16,
     color: "#666",
     textAlign: "center",
     marginVertical: 20,
     fontFamily: "Exo-Regular",
-  }
+  },
 });

@@ -1,24 +1,23 @@
-import { CustomTextInput } from "@/components/CustomTextInput";
-import EventCard from "@/components/EventCard";
-import ImageSlider from "@/components/ImageSlider";
-import ServiceCard from "@/components/ServiceCard";
-import { useState,useEffect } from "react";
-import { useRouter } from "expo-router"; // Add this import
+import { CustomTextInput } from '@/components/CustomTextInput';
+import EventCard from '@/components/EventCard';
+import ImageSlider from '@/components/ImageSlider';
+import { useState, useEffect } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   StyleSheet,
   Image,
-  Platform,
   View,
-  ScrollView,
   FlatList,
   Text,
   TouchableOpacity,
   Alert,
   Linking,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { apiRequest } from "@/utils/api";
-import { formatTimestamp } from "@/utils";
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { apiRequest } from '@/utils/api';
+import { formatTimestamp } from '@/utils';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { useAuth, useUser } from '@clerk/clerk-expo'; // Import useAuth
 
 // Define TypeScript interfaces
 interface NewsItem {
@@ -32,6 +31,10 @@ interface NewsItem {
   category: string;
   publicationDate?: string;
   imageUrl?: string;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+  postedBy?: string | null;
 }
 
 interface NoticeItem {
@@ -39,7 +42,7 @@ interface NoticeItem {
   title: string;
   description: string;
   city: string;
-  postedBy: string | null; // Adjusted to allow null as per API data
+  postedBy: string | null;
   category: string;
   isActive: boolean;
   expiryDate: string;
@@ -49,12 +52,25 @@ interface NoticeItem {
 interface ServiceItem {
   id: string;
   serviceName: string;
-  iconName: string;
   description: string;
   price: number;
-  duration: string;
   availability: boolean;
-  category: string;
+  average_rating?: number;
+  views?: number;
+  createdAt?: string;
+  profile_picture?: string;
+}
+
+interface ServiceProvider {
+  id: string;
+  name: string;
+  profile_picture?: string;
+  services: string[]; // Adjusted to match API response (array of service names)
+  average_rating?: number;
+  availability: string; // e.g., "Available" or "Busy"
+  views?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface AdvertisementItem {
@@ -74,387 +90,311 @@ interface AdvertisementItem {
 
 interface TrendingItem {
   id: string;
-  name: string;
-  type: string;
-  location: string;
-  imageUrl: string;
-  website: string;
+  type: string; // 'service', 'advertisement', 'news', 'notice'
+  city: string;
+  title: string;
+  views: number;
+  createdAt: string;
+  rating?: number;
+  description?: string;
+  imageUrl?: string;
+  category?: string;
+  content?: string;
+  isPublished?: boolean;
+  publicationDate?: string;
+  postedBy?: string | null;
 }
 
 const publicImageUrls = [
-  // "https://images.unsplash.com/photo-1593642634311-18a8d3fd4031?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800", // A workspace
-  "https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800", // A beautiful beach
-  "https://images.unsplash.com/photo-1532619187604-47191f8a3b41?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800", // Sunset with a mountain
-  "https://images.unsplash.com/photo-1528799636145-dfd4f7d5a3d4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800", // Forest pathway
-  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800", // A scenic lake
-];
-
-const servicesData = [
-  {
-    id: "1",
-    serviceName: "Home Cleaning",
-    iconName: "cleaning-services", // MaterialIcons
-    description:
-      "Comprehensive cleaning services for your home, including dusting, vacuuming, and mopping.",
-    price: 50, // Price in USD
-    duration: "2-3 hours",
-    availability: true,
-    category: "Household",
-  },
-  {
-    id: "2",
-    serviceName: "Plumbing",
-    iconName: "plumbing", // MaterialIcons
-    description:
-      "Expert plumbing services for leaks, installations, and repairs.",
-    price: 80,
-    duration: "1-2 hours",
-    availability: true,
-    category: "Maintenance",
-  },
-  {
-    id: "3",
-    serviceName: "Electrician",
-    iconName: "electrical-services", // MaterialIcons
-    description:
-      "Certified electricians for installations, repairs, and maintenance.",
-    price: 70,
-    duration: "1-3 hours",
-    availability: false,
-    category: "Maintenance",
-  },
-  {
-    id: "4",
-    serviceName: "Car Wash",
-    iconName: "local-car-wash", // FontAwesome
-    description:
-      "Professional car washing services, including interior and exterior cleaning.",
-    price: 30,
-    duration: "1-2 hours",
-    availability: true,
-    category: "Automobile",
-  },
-  {
-    id: "5",
-    serviceName: "Gardening",
-    iconName: "nature", // MaterialIcons
-    description: "Gardening services for lawn care, planting, and landscaping.",
-    price: 60,
-    duration: "2-4 hours",
-    availability: true,
-    category: "Outdoor",
-  },
-  {
-    id: "6",
-    serviceName: "Personal Training",
-    iconName: "fitness-center", // MaterialIcons
-    description:
-      "One-on-one fitness training sessions with certified trainers.",
-    price: 100,
-    duration: "1 hour",
-    availability: true,
-    category: "Health & Fitness",
-  },
-  {
-    id: "7",
-    serviceName: "Babysitting",
-    iconName: "child-care", // MaterialIcons
-    description: "Experienced babysitters to care for your children.",
-    price: 20,
-    duration: "Per hour",
-    availability: false,
-    category: "Personal Care",
-  },
-  {
-    id: "8",
-    serviceName: "Carpentry",
-    iconName: "construction", // MaterialIcons
-    description: "Skilled carpenters for furniture making and repairs.",
-    price: 90,
-    duration: "2-5 hours",
-    availability: true,
-    category: "Maintenance",
-  },
-  {
-    id: "9",
-    serviceName: "Laundry",
-    iconName: "local-laundry-service", // MaterialIcons
-    description: "Laundry services including washing, drying, and ironing.",
-    price: 25,
-    duration: "1 day",
-    availability: true,
-    category: "Household",
-  },
-  {
-    id: "10",
-    serviceName: "Pet Grooming",
-    iconName: "pets", // MaterialIcons
-    description: "Professional pet grooming services for dogs and cats.",
-    price: 40,
-    duration: "1-2 hours",
-    availability: true,
-    category: "Pet Care",
-  },
-];
-
-const mixedData = [
-  {
-    id: "1",
-    name: "The Gourmet Kitchen",
-    type: "Restaurant",
-    location: "New York, USA",
-    imageUrl: "https://images.unsplash.com/photo-1551782450-a2132b4ba21d", // Restaurant interior
-    website: "https://www.thegourmetkitchen.com",
-  },
-  {
-    id: "2",
-    name: "Cafe Mocha",
-    type: "Restaurant",
-    location: "Paris, France",
-    imageUrl: "https://images.unsplash.com/photo-1504754524776-8f4f37790ca0", // Coffee shop
-    website: "https://www.cafemocha.fr",
-  },
-  {
-    id: "3",
-    name: "Greenfield High School",
-    type: "School",
-    location: "California, USA",
-    imageUrl: "https://images.unsplash.com/photo-1571260899304-425eee4c7efc", // School building
-    website: "https://www.greenfieldhigh.edu",
-  },
-  {
-    id: "4",
-    name: "St. Patrick's Academy",
-    type: "School",
-    location: "Dublin, Ireland",
-    imageUrl: "https://images.unsplash.com/photo-1596495577886-d920f1ff04f2", // Classroom
-    website: "https://www.stpatricks.ie",
-  },
-  {
-    id: "5",
-    name: "City Care Hospital",
-    type: "Hospital",
-    location: "London, UK",
-    imageUrl: "https://images.unsplash.com/photo-1586772001873-4d71b0fdc101", // Hospital exterior
-    website: "https://www.citycarehospital.co.uk",
-  },
-  {
-    id: "6",
-    name: "Sunrise Medical Center",
-    type: "Hospital",
-    location: "Dubai, UAE",
-    imageUrl: "https://images.unsplash.com/photo-1584438785041-c5c89e3df9b1", // Hospital room
-    website: "https://www.sunrisemedical.ae",
-  },
-  {
-    id: "7",
-    name: "FitLife Gym",
-    type: "Gym",
-    location: "San Francisco, USA",
-    imageUrl: "https://images.unsplash.com/photo-1558611848-73f7eb4001df", // Gym interior
-    website: "https://www.fitlife.com",
-  },
-  {
-    id: "8",
-    name: "Muscle Factory",
-    type: "Gym",
-    location: "Bangkok, Thailand",
-    imageUrl: "https://images.unsplash.com/photo-1517964603305-676044d3ad39", // Gym equipment
-    website: "https://www.musclefactory.co.th",
-  },
-  {
-    id: "9",
-    name: "Pasta Paradise",
-    type: "Restaurant",
-    location: "Rome, Italy",
-    imageUrl: "https://images.unsplash.com/photo-1600891964599-f61ba0e24092", // Italian food
-    website: "https://www.pastaparadise.it",
-  },
-  {
-    id: "10",
-    name: "Bright Future International",
-    type: "School",
-    location: "Sydney, Australia",
-    imageUrl: "https://images.unsplash.com/photo-1600585154340-be6161ea178e", // Students studying
-    website: "https://www.brightfuture.edu.au",
-  },
-];
-
-const advertisementData = [
-  {
-    id: "1",
-    title: "50% Off at TechTrendz",
-    imageUrl:
-      "https://images.unsplash.com/photo-1501785888041-af3ef285b470?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-    link: "https://techtrendz.com",
-  },
-  {
-    id: "2",
-    title: "Free Coffee at Cafe Mocha",
-    imageUrl:
-      "https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-    link: "https://cafemocha.com",
-  },
-];
-const newsData: NewsItem[] = [
-  {
-    id: "1",
-    headline: "New Park Opening",
-    summary: "City unveils new park downtown next month.",
-    source: "City News",
-    date: "2025-03-14",
-    content:
-      "The city council has announced the grand opening of a new park in the downtown area, featuring green spaces, playgrounds, and a community garden. The event is scheduled for next month with a ribbon-cutting ceremony.",
-  },
-  {
-    id: "2",
-    headline: "Tech Expo 2025",
-    summary: "Annual tech expo scheduled for April.",
-    source: "Tech Daily",
-    date: "2025-03-20",
-    content:
-      "Tech Expo 2025 will showcase the latest innovations in AI, robotics, and renewable energy. Held annually, this event attracts thousands of tech enthusiasts and industry leaders from around the globe.",
-  },
-  {
-    id: "3",
-    headline: "Local Art Festival",
-    summary: "Art festival to celebrate local talent this weekend.",
-    source: "Art Weekly",
-    date: "2025-03-15",
-    content:
-      "This weekend’s art festival will feature local artists, live performances, and interactive workshops. Don’t miss the chance to explore creativity in your community!",
-  },
+  'https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800',
+  'https://images.unsplash.com/photo-1532619187604-47191f8a3b41?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800',
+  'https://images.unsplash.com/photo-1528799636145-dfd4f7d5a3d4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800',
+  'https://images.unsplash.com/photo-1501785888041-af3ef285b470?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800',
 ];
 
 export default function HomeScreen() {
-  const [searchValue, setSearchValue] = useState("");
+  const { getToken } = useAuth(); // Use Clerk's useAuth hook
+  const [searchValue, setSearchValue] = useState('');
   const [showAll, setShowAll] = useState(false);
   const router = useRouter();
-  const displayedData = showAll ? servicesData : servicesData.slice(0, 6);
   const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [advertisements, setAdvertisements] = useState<AdvertisementItem[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [trending, setTrending] = useState<TrendingItem[]>([]);
+  const [featuredServices, setFeaturedServices] = useState<ServiceProvider[]>(
+    []
+  );
+  const { user, isSignedIn } = useUser(); // Get user details
+  const { resource } = useLocalSearchParams();
+  const parsedResource = resource ? JSON.parse(resource as string) : null;
+  console.log('Parsed resource:', parsedResource);
+  console.log('signIn:', parsedResource?.signIn);
+  console.log('signUp:', parsedResource?.signUp);
+  console.log('User:', user?.fullName);
+
+  // Run checkUser only when signIn or signUp is true and user exists
+  useEffect(() => {
+    if (user && (parsedResource?.signIn || parsedResource?.signUp)) {
+      checkUser(user);
+    }
+  }, [user, parsedResource]); // Depend on user and parsedResource
+
+  const checkUser = async (user: any) => {
+    try {
+      console.log("User information:", user);
+      if (!user) return;
+
+      console.log('Checking user:', user.id);
+      const User = {
+        userId: user.id,
+        name: user.fullName,
+        email: user.emailAddresses[0].emailAddress,
+        phone: user.phoneNumber || '1234567899',
+        address: user.address || 'some address which is not in the database',
+        profilePic: user.profileImageUrl || 'https://via.placeholder.com/300x200',
+        city: user.city || 'Motihari',
+        bio: user.bio || 'some good stuff ',
+      };
+      const token = await getToken();
+      console.log('User:', User);
+
+      if (parsedResource?.signIn) {
+        console.log("Doing sign in");
+        const response = await apiRequest(
+          `/nixonbit/users/${User.userId}`,
+          'PUT',
+          User,
+          token
+        );
+        console.log('User updated:', response);
+      } else if (parsedResource?.signUp) {
+        console.log("Doing sign up");
+        const response = await apiRequest(
+          '/nixonbit/users/register',
+          'POST',
+          User,
+          token
+        );
+        console.log('User registered:', response);
+      }
+    } catch (error) {
+      console.error('Error processing user:', error);
+    }
+  };
 
   // Fetch data from API on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // setLoading(true);
-
-
-
+        const token = await getToken(); // Fetch the token inside the component
         // Fetch Notices
-        const noticesResponse = await apiRequest('/notices/city/Motihari','GET',null);
-        console.log(noticesResponse)
-        const noticesData = await noticesResponse.data.notices;
-        console.log(noticesData);
-        setNotices(noticesData.slice(0, 5)); // Limit to 5 for brevity
+        const noticesResponse = await apiRequest(
+          '/notices/city/Motihari',
+          'GET',
+          null,
+          token
+        );
+        const noticesData = noticesResponse.data.notices;
+        setNotices(noticesData.slice(0, 5));
 
         // Fetch Advertisements
-        const adsResponse = await apiRequest('/advertisements/city/Motihari','GET',null);
-        const adsData = await adsResponse.data.advertisements;
-        setAdvertisements(adsData.slice(0, 15)); // Limit to 5
+        const adsResponse = await apiRequest(
+          '/advertisements/city/Motihari',
+          'GET',
+          null
+        );
+        const adsData = adsResponse.data.advertisements;
+        setAdvertisements(adsData.slice(0, 15));
 
         // Fetch News
-        const newsResponse = await apiRequest('/news/city/Motihari','GET',null);
-        const newsData = await newsResponse.data.news;
-        setNews(newsData.slice(0, 5)); // Limit to 5
+        const newsResponse = await apiRequest(
+          '/news/city/Motihari',
+          'GET',
+          null
+        );
+        const newsData = newsResponse.data.news;
+        setNews(newsData.slice(0, 5));
 
-        // Fetch Trending (Mixed Data)
-        // const trendingResponse = await fetch('http://your-backend-url/api/trending');
-        // const trendingData = await trendingResponse.json();
-        // setTrending(trendingData.slice(0, 10)); // Limit to 10
+        // Fetch Trending
+        const trendingResponse = await apiRequest(
+          '/trending/Motihari?limit=10&type=all',
+          'GET',
+          null
+        );
+        const trendingData = trendingResponse.data.items;
+        setTrending(trendingData);
 
+        // Fetch Featured Services
+        const featuredResponse = await apiRequest(
+          '/services/featured/Motihari?limit=9',
+          'GET',
+          null
+        );
+        setFeaturedServices(featuredResponse.data);
       } catch (error) {
         console.error('[ERROR]: Failed to fetch data:', error);
         Alert.alert('Error', 'Failed to load data from the server.');
-      } finally {
-        // setLoading(false);
       }
     };
 
     fetchData();
   }, []);
 
-
-  const eventPress = () => {
-    Alert.alert("Event Selected");
+  const handleTrendingPress = (item: TrendingItem) => {
+    switch (item.type) {
+      case 'service':
+        router.push({
+          pathname: '/(root)/(services)/service-detailed-screen',
+          params: { serviceId: item.id },
+        });
+        break;
+      case 'advertisement':
+        Linking.openURL(item.link || 'https://example.com').catch((err) =>
+          Alert.alert('Error', 'Failed to open link: ' + err.message)
+        );
+        break;
+      case 'news':
+        const newsItem: NewsItem = {
+          id: item.id,
+          headline: item.title,
+          content: item.content || '',
+          city: item.city,
+          category: item.category || '',
+          imageUrl: item.imageUrl,
+          isPublished: item.isPublished ?? true,
+          publicationDate: item.publicationDate || item.createdAt,
+          postedBy: item.postedBy || 'Nixonbit',
+          createdAt: item.createdAt,
+          updatedAt: item.createdAt,
+        };
+        router.push({
+          pathname: '/(root)/(services)/news-detailed-screen',
+          params: { news: JSON.stringify(newsItem) },
+        });
+        break;
+      case 'notice':
+        const noticeItem: NoticeItem = {
+          id: item.id,
+          title: item.title,
+          description: item.description || '',
+          city: item.city,
+          postedBy: item.postedBy || 'Nixonbit',
+          category: item.category || 'General',
+          isActive: true,
+          expiryDate: item.createdAt,
+          createdAt: item.createdAt,
+        };
+        router.push({
+          pathname: '/(root)/(services)/notice-detailed-screen',
+          params: { notice: JSON.stringify(noticeItem) },
+        });
+        break;
+      default:
+        Alert.alert('Item Selected', `Trending ${item.type}: ${item.title}`);
+    }
   };
 
   const handleAdPress = (link: string) => {
     Linking.openURL(link).catch((err) =>
-      Alert.alert("Error", "Failed to open link: " + err.message)
+      Alert.alert('Error', 'Failed to open link: ' + err.message)
     );
   };
 
+  const handleServicePress = (item: any) => {
+    const newItem = {
+      id: item.id,
+      profilePic: item.profile_picture,
+      description: item.description || '',
+      price: item.price,
+      rating: item.average_rating,
+      experience: item.experience,
+      services: item.services,
+      name: item.name,
+      category: item.category,
+      isActive: item.isActive,
+      availability: item.availability,
+      average_rating: item.average_rating || 0,
+      views: item.views || 0,
+      createdAt: item.createdAt || '',
+      phoneNumber: item.phone || '',
+    };
+    router.push({
+      pathname: '/(root)/(services)/servicelist-detail-screen',
+      params: { item: JSON.stringify(newItem) },
+    });
+  };
+
   return (
-    <SafeAreaView style={{ backgroundColor: "transparent" }}>
+    <SafeAreaView style={{ backgroundColor: '#F0F2F5', flex: 1 }}>
       <FlatList
+        data={[]}
+        renderItem={null}
         ListHeaderComponent={
           <View>
+            {/* Header Section */}
             <View style={styles.headerContainer}>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
+              <View style={styles.headerRow}>
                 <Text style={styles.mainHeader}>
-                  Welcome to <Text style={{ color: "#3470E4" }}>NixonBit!</Text>
+                  Welcome to <Text style={{ color: '#3470E4' }}>NixonBit!</Text>
                 </Text>
                 <Image
-                  source={require("../../../assets/images/nixonbiticon.png")}
+                  source={require('../../../assets/images/nixonbiticon.png')}
                   style={styles.logo}
                 />
               </View>
-
               <Text style={styles.description}>
                 Discover your city, all in one place!
               </Text>
             </View>
+
+            {/* Search Bar */}
             <CustomTextInput
               label={null}
-              placeholder={"Search"}
+              placeholder={'Search'}
               value={searchValue}
               onChangeText={setSearchValue}
               style={styles.search}
-              autoCapitalize='none'
+              autoCapitalize="none"
             />
 
+            {/* Notice Board Section */}
             <View>
-              <TouchableOpacity
-                onPress={() =>
-                  router.push("/(root)/(services)/notice-list-screen")
-                }
-              >
-                <View style={styles.headerButton}>
-                  <Text style={styles.header}>Notice Board</Text>
+              <View style={styles.headerButton}>
+                <Text style={styles.header}>Notice Board</Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push('/(root)/(services)/notice-list-screen')
+                  }
+                >
                   <Text style={styles.viewAllText}>View All</Text>
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
+              </View>
               <FlatList
                 horizontal
                 data={notices}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
                 renderItem={({ item }) => (
-                  // <TouchableOpacity></TouchableOpacity>
                   <TouchableOpacity
                     style={styles.noticeCard}
                     onPress={() =>
                       router.push({
-                        pathname: "/(root)/(services)/notice-detailed-screen",
+                        pathname: '/(root)/(services)/notice-detailed-screen',
                         params: { notice: JSON.stringify(item) },
                       })
                     }
                   >
                     <Text style={styles.noticeTitle}>{item.title}</Text>
                     <Text style={styles.noticeContent}>{item.category}</Text>
-                    <Text style={styles.noticeDate}>{formatTimestamp(item.createdAt)}</Text>
+                    <Text style={styles.noticeDate}>
+                      {formatTimestamp(item.createdAt)}
+                    </Text>
                   </TouchableOpacity>
                 )}
                 showsHorizontalScrollIndicator={false}
+                ListEmptyComponent={
+                  <Text style={styles.emptyText}>No notices available</Text>
+                }
               />
             </View>
 
@@ -474,30 +414,36 @@ export default function HomeScreen() {
                     <Image
                       source={{ uri: item.imageUrl }}
                       style={styles.adImage}
-                      resizeMode='cover'
+                      resizeMode="cover"
                     />
                     <Text style={styles.adTitle}>{item.title}</Text>
                     <Text style={styles.noticeContent}>{item.category}</Text>
-                    <Text style={styles.noticeDate}>{formatTimestamp(item.createdAt)}</Text>
-
+                    <Text style={styles.noticeDate}>
+                      {formatTimestamp(item.createdAt)}
+                    </Text>
                   </TouchableOpacity>
                 )}
                 showsHorizontalScrollIndicator={false}
+                ListEmptyComponent={
+                  <Text style={styles.emptyText}>
+                    No advertisements available
+                  </Text>
+                }
               />
             </View>
 
             {/* News Section */}
             <View>
-              <TouchableOpacity
-                onPress={() =>
-                  router.push("/(root)/(services)/news-list-screen")
-                }
-              >
-                <View style={styles.headerButton}>
-                  <Text style={styles.header}>Latest News</Text>
+              <View style={styles.headerButton}>
+                <Text style={styles.header}>Latest News</Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push('/(root)/(services)/news-list-screen')
+                  }
+                >
                   <Text style={styles.viewAllText}>View All</Text>
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
+              </View>
               <FlatList
                 horizontal
                 data={news}
@@ -508,89 +454,137 @@ export default function HomeScreen() {
                     style={styles.newsCard}
                     onPress={() =>
                       router.push({
-                        pathname: "/(root)/(services)/news-detailed-screen",
+                        pathname: '/(root)/(services)/news-detailed-screen',
                         params: { news: JSON.stringify(item) },
                       })
                     }
                   >
-                    <Text style={styles.newsHeadline}>{item.headline?.slice(0,50)}</Text>
-                    <Text style={styles.newsSummary}>{item.content?.slice(0,50)}</Text>
+                    <Text style={styles.newsHeadline}>
+                      {item.headline?.slice(0, 50)}
+                    </Text>
+                    <Text style={styles.newsSummary}>
+                      {item.content?.slice(0, 50)}
+                    </Text>
                     <Text style={styles.newsSource}>{item.category}</Text>
-                    <Text style={styles.noticeDate}>{formatTimestamp(item.createdAt)}</Text>
-
+                    <Text style={styles.noticeDate}>
+                      {formatTimestamp(item.createdAt)}
+                    </Text>
                   </TouchableOpacity>
                 )}
                 showsHorizontalScrollIndicator={false}
+                ListEmptyComponent={
+                  <Text style={styles.emptyText}>No news available</Text>
+                }
               />
             </View>
 
+            {/* Trending in City Section */}
             <View>
               <Text style={styles.header}>Trending in City</Text>
               <FlatList
                 horizontal
-                data={mixedData}
+                data={trending}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
                 renderItem={({ item }) => (
                   <EventCard
-                    eventTitle={item.name}
-                    location={item.location}
+                    eventTitle={item.title}
+                    location={item.city}
                     type={item.type}
-                    image={item.imageUrl}
-                    onPress={eventPress}
+                    image={
+                      item.imageUrl || 'https://via.placeholder.com/300x200'
+                    }
+                    onPress={() => handleTrendingPress(item)}
                   />
                 )}
                 pagingEnabled
-                snapToAlignment='center'
+                snapToAlignment="center"
                 snapToInterval={300}
-                decelerationRate='fast'
+                decelerationRate="fast"
                 showsHorizontalScrollIndicator={false}
                 style={{ marginBottom: 20 }}
+                ListEmptyComponent={
+                  <Text style={styles.emptyText}>
+                    No trending items available
+                  </Text>
+                }
               />
             </View>
+
+            {/* Featured Services Section */}
             <View>
-              <Text style={styles.header}>Featured Services</Text>
+              <View style={styles.headerButton}>
+                <Text style={styles.header}>Featured Services</Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push('/(root)/(services)/servicelist-screen')
+                  }
+                >
+                  <Text style={styles.viewAllText}>View All</Text>
+                </TouchableOpacity>
+              </View>
+              <FlatList
+                horizontal
+                data={showAll ? featuredServices : featuredServices.slice(0, 6)}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContent}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.serviceCard}
+                    onPress={() => handleServicePress(item)}
+                  >
+                    {item.profile_picture ? (
+                      <Image
+                        source={{ uri: item.profile_picture }}
+                        style={styles.profilePic}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={[styles.profilePic, styles.placeholderPic]}>
+                        <MaterialIcons name="person" size={40} color="#666" />
+                      </View>
+                    )}
+                    <Text style={styles.name}>{item.name}</Text>
+                    <Text style={styles.servicesText}>
+                      Services: {item.services?.join(', ') || 'N/A'}
+                    </Text>
+                    <View style={styles.ratingContainer}>
+                      <MaterialIcons name="star" size={16} color="#FFD700" />
+                      <Text style={styles.ratingText}>
+                        {item.average_rating?.toFixed(1) || 'No rating'}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.availabilityText,
+                        {
+                          color:
+                            item.availability === 'Available'
+                              ? '#28A745'
+                              : '#DC3545',
+                        },
+                      ]}
+                    >
+                      {item.availability || 'Unknown'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={
+                  <Text style={styles.emptyText}>No services available</Text>
+                }
+              />
             </View>
           </View>
         }
-        data={displayedData}
-        keyExtractor={(item) => item.id}
-        numColumns={3}
-        columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <ServiceCard
-            iconName={item.iconName}
-            serviceName={item.serviceName}
-            description={item.description}
-            price={item.price}
-            availability={item.availability}
-          />
-        )}
-        ListFooterComponentStyle={{ paddingBottom: 100 }}
         ListFooterComponent={
           <View>
-            {!showAll ? (
-              <TouchableOpacity
-                style={styles.viewAllButton}
-                onPress={() => setShowAll(true)}
-              >
-                <Text style={styles.viewAllText}>View All</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.viewAllButton}
-                onPress={() => setShowAll(false)}
-              >
-                <Text style={styles.viewAllText}>Hide</Text>
-              </TouchableOpacity>
-            )}
             <View>
               <Text style={styles.header}>City Gallery</Text>
               <ImageSlider images={publicImageUrls} />
             </View>
           </View>
         }
+        ListFooterComponentStyle={{ paddingBottom: 100 }}
       />
     </SafeAreaView>
   );
@@ -599,48 +593,55 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   headerContainer: {
     marginLeft: 5,
-    // marginTop: 20,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   mainHeader: {
     fontSize: 24,
-    fontFamily: "Exo-Bold",
-    color: "#002045", // Primary color
+    fontFamily: 'Exo-Bold',
+    color: '#002045',
   },
   description: {
-    fontFamily: "Exo-Regular",
+    fontFamily: 'Exo-Regular',
     lineHeight: 24,
-    color: "#002045",
+    color: '#002045',
   },
   header: {
     fontSize: 17,
-    fontFamily: "Exo-Bold",
+    fontFamily: 'Exo-Bold',
     marginBottom: 15,
     marginLeft: 5,
-    color: "#002045", // Primary color
+    color: '#002045',
   },
   search: {
     marginHorizontal: 5,
+    marginBottom: 15,
   },
   row: {
-    justifyContent: "space-between",
-    marginBottom: 10,
+    justifyContent: 'space-between',
+    marginBottom: 5,
   },
   headerButton: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 5,
   },
   viewAllButton: {
-    alignSelf: "flex-end",
+    alignSelf: 'flex-end',
     borderRadius: 4,
     marginRight: 5,
   },
-
   viewAllText: {
-    color: "#3470E4", // Secondary color
+    color: '#3470E4',
     fontSize: 16,
-    fontWeight: "bold",
-    fontFamily: "Exo-Bold",
+    fontWeight: 'bold',
+    fontFamily: 'Exo-Bold',
   },
   listContent: {
     paddingHorizontal: 8,
@@ -648,39 +649,38 @@ const styles = StyleSheet.create({
   logo: {
     width: 50,
     height: 50,
-    resizeMode: "contain",
+    resizeMode: 'contain',
   },
   // Notice Board Styles
   noticeCard: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 8,
     padding: 10,
     marginRight: 10,
     width: 250,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    // borderWidth: 1,
-    borderColor: "#3470E4", // Secondary color
+    borderColor: '#3470E4',
     marginBottom: 10,
   },
   noticeTitle: {
     fontSize: 16,
-    fontFamily: "Exo-Bold",
-    color: "#002045", // Primary color
+    fontFamily: 'Exo-Bold',
+    color: '#002045',
     marginBottom: 5,
   },
   noticeContent: {
     fontSize: 14,
-    fontFamily: "Exo-Regular",
-    color: "#666",
+    fontFamily: 'Exo-Regular',
+    color: '#666',
   },
   noticeDate: {
     fontSize: 12,
-    fontFamily: "Exo-Regular",
-    color: "#3470E4", // Secondary color
+    fontFamily: 'Exo-Regular',
+    color: '#3470E4',
     marginTop: 5,
   },
   // Advertisement Styles
@@ -690,53 +690,111 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   adImage: {
-    width: "100%",
+    width: '100%',
     height: 150,
     borderRadius: 8,
     marginBottom: 5,
-    // borderWidth: 1,
-    borderColor: "#002045", // Primary color
+    borderColor: '#002045',
   },
   adTitle: {
     fontSize: 14,
-    fontFamily: "Exo-Bold",
-    color: "#3470E4", // Secondary color
-    // textAlign: "center",
+    fontFamily: 'Exo-Bold',
+    color: '#3470E4',
   },
   // News Styles
   newsCard: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderRadius: 8,
     padding: 10,
     marginRight: 10,
     width: 250,
     height: 150,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    // borderWidth: 1,
-    borderColor: "#002045", // Primary color
+    borderColor: '#002045',
     marginBottom: 10,
   },
   newsHeadline: {
     fontSize: 16,
-    fontFamily: "Exo-Bold",
-    color: "#002045", // Primary color
+    fontFamily: 'Exo-Bold',
+    color: '#002045',
     marginBottom: 5,
   },
   newsSummary: {
     fontSize: 14,
-    fontFamily: "Exo-Regular",
-    color: "#666",
+    fontFamily: 'Exo-Regular',
+    color: '#666',
   },
   newsSource: {
     fontSize: 12,
-    fontFamily: "Exo-Regular",
-    color: "#3470E4", // Secondary color
+    fontFamily: 'Exo-Regular',
+    color: '#3470E4',
     marginTop: 5,
   },
+  // Service Card Styles
+  serviceCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    marginVertical: 8,
+    marginHorizontal: 4,
+    width: 130, // Adjusted for 3 columns
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    alignItems: 'center',
+  },
+  profilePic: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: 5,
+  },
+  placeholderPic: {
+    backgroundColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  name: {
+    fontSize: 14,
+    fontFamily: 'Exo-Bold',
+    color: '#002045',
+    marginBottom: 3,
+    textAlign: 'center',
+  },
+  servicesText: {
+    fontSize: 12,
+    fontFamily: 'Exo-Regular',
+    color: '#666',
+    marginBottom: 3,
+    textAlign: 'center',
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 3,
+  },
+  ratingText: {
+    fontSize: 12,
+    fontFamily: 'Exo-Regular',
+    color: '#666',
+    marginLeft: 3,
+  },
+  availabilityText: {
+    fontSize: 12,
+    fontFamily: 'Exo-Regular',
+    fontWeight: 'bold',
+  },
+  emptyText: {
+    fontSize: 16,
+    fontFamily: 'Exo-Regular',
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 20,
+  },
 });
-// primary:"#002045"
-// secondary:"#3470E4"

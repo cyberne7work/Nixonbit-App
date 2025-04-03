@@ -17,6 +17,7 @@ const ServiceManProfileCard = ({
   experience,
   phoneNumber,
   onProfilePress,
+  services
 }) => {
   const handleCallPress = () => {
     if (phoneNumber) {
@@ -32,9 +33,11 @@ const ServiceManProfileCard = ({
       <Image source={{ uri: profilePic }} style={styles.profilePic} />
       <View style={styles.detailsContainer}>
         <Text style={styles.name}>{name}</Text>
+        <Text style={styles.name}>{services.name}</Text>
+
         <View style={styles.ratingContainer}>
           <MaterialIcons name="star" size={16} color="#FFD700" />
-          <Text style={styles.rating}>{rating} / 5</Text>
+          <Text style={styles.rating}>{rating}</Text>
         </View>
         <Text style={styles.experience}>{experience} years of experience</Text>
       </View>
@@ -75,7 +78,6 @@ const styles = StyleSheet.create({
   detailsContainer: {
     flex: 1,
     padding: 16,
-    // backgroundColor:"red"
   },
   name: {
     fontSize: 18,

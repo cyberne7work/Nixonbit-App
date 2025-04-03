@@ -6,49 +6,48 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from "react-native";
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import { CustomTextInput } from "@/components/CustomTextInput";
 import { useRouter } from "expo-router";
+import { apiRequest } from '@/utils/api';
 
-const categories = [
-  { id: "1", name: "Home Cleaning" },
-  { id: "2", name: "Plumbing" },
-  { id: "3", name: "Electrician" },
-  { id: "4", name: "Car Wash" },
-  { id: "5", name: "Gardening" },
-  { id: "6", name: "Pet Care" },
-  { id: "7", name: "Hospital" },
-  { id: "8", name: "Gym" },
-  { id: "9", name: "Pest Control" },
-  { id: "10", name: "Tailoring" },
-  { id: "11", name: "Cooking" },
-  { id: "12", name: "Laundry" },
-  { id: "13", name: "Dry Cleaning" },
-  { id: "14", name: "Tailoring" },
-  { id: "15", name: "Photography" },
-  { id: "16", name: "Travel" },
-  { id: "17", name: "Beauty" },
-  { id: "18", name: "Health & Fitness" },
-  { id: "19", name: "Personal Care" },
-  { id: "20", name: "Maintenance" },
-  { id: "21", name: "Household" },
-  { id: "22", name: "Childcare" },
-  { id: "23", name: "Carpentry" },
-  { id: "24", name: "Laundry" },
-  { id: "25", name: "Dry Cleaning" },
-  { id: "26", name: "Tailoring" },
-  { id: "28", name: "Travel" },
-  { id: "29", name: "Beauty" },
-  { id: "30", name: "Health & Fitness" },
-];
+
 
 export default function ServiceScreen() {
+
   const router = useRouter();
+  const [services, setServices] = useState([]);
+
   const [searchValue, setSearchValue] = useState("");
-  const filteredCategories = categories.filter((categories) =>
+  const filteredCategories = services.filter((categories) =>
     categories.name.toLowerCase().includes(searchValue.toLowerCase())
   );
+
+
+
+    // Fetch data from API on component mount
+    useEffect(() => {
+      const fetchData = async () => {
+        try {
+          // Fetch Notices
+          const servicesResponse = await apiRequest(
+            '/services/list',
+            'GET',
+            null,
+            ''
+          );
+          const data = servicesResponse.data;
+          setServices(data);
+  
+  
+        } catch (error) {
+          console.error('[ERROR]: Failed to fetch data:', error);
+        }
+      };
+  
+      fetchData();
+    }, []);
 
   const renderCategory = ({ item }) => (
     <TouchableOpacity

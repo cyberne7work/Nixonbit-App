@@ -1,6 +1,6 @@
-import { CustomTextInput } from "@/components/CustomTextInput";
-import { useRouter } from "expo-router";
-import React, { useState, useCallback } from "react";
+import { CustomTextInput } from '@/components/CustomTextInput';
+import { useRouter } from 'expo-router';
+import React, { useState, useCallback,useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,36 +11,47 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
-} from "react-native";
-import MaterialIcons from "react-native-vector-icons/MaterialIcons";
-import { useSignIn } from "@clerk/clerk-expo";
-import { useOAuth } from "@clerk/clerk-expo";
-import * as Linking from "expo-linking";
+} from 'react-native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { useSignIn, useUser ,useOAuth,useAuth } from '@clerk/clerk-expo';
+import * as Linking from 'expo-linking';
 
 export default function OauthGoogle() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, setActive, isLoaded } = useSignIn();
-  const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
+  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
+
+
 
   const handleGoogleSignIn = useCallback(async () => {
     try {
-      const { createdSessionId, signIn, signUp, setActive } =
+
+      const { createdSessionId, signIn, signUp, setActive, } =
         await startOAuthFlow({
-          redirectUrl: Linking.createURL("/(root)/(tabs)/home", {
-            scheme: "myapp",
+          redirectUrl: Linking.createURL('/(root)/(tabs)/home', {
+            scheme: 'myapp',
           }),
         });
 
       // If sign in was successful, set the active session
       if (createdSessionId) {
         if (signIn) {
+          console.log('User created successfully');
           setActive!({ session: createdSessionId });
-          router.push("/(root)/(tabs)/home");
+          // router.push('/(root)/(tabs)/home');
+          router.push({
+            pathname: "/(root)/(tabs)/home",
+            params: { 'resource': JSON.stringify({signIn:true}) },
+          })
         }
         if (signUp?.createdUserId) {
+          console.log('User created successfully');
           setActive!({ session: createdSessionId });
-          router.push("/(root)/(tabs)/home");
+          router.push({
+            pathname: "/(root)/(tabs)/home",
+            params: { 'resource': JSON.stringify({signUp:true}) },
+          })
         }
       } else {
       }
@@ -58,7 +69,7 @@ export default function OauthGoogle() {
         onPress={handleGoogleSignIn}
       >
         <Image
-          source={require("../assets/icons/google.png")}
+          source={require('../assets/icons/google.png')}
           style={styles.googleIcon}
         />
         <Text style={styles.googleButtonText}>Sign In with Google</Text>
@@ -69,49 +80,49 @@ export default function OauthGoogle() {
 
 const styles = StyleSheet.create({
   socialButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 10,
     marginBottom: 15,
   },
   facebookButton: {
-    backgroundColor: "#3b5998",
+    backgroundColor: '#3b5998',
   },
   googleButton: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
   },
   googleIcon: {
     width: 20,
     height: 20,
-    resizeMode: "contain",
+    resizeMode: 'contain',
     marginLeft: 10,
   },
   googleButtonText: {
-    color: "#002045",
+    color: '#002045',
     fontSize: 16,
     marginLeft: 10,
-    fontWeight: "bold",
-    fontFamily: "Exo-Bold",
+    fontWeight: 'bold',
+    fontFamily: 'Exo-Bold',
   },
   socialButtonText: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 16,
     marginLeft: 10,
-    fontWeight: "bold",
-    fontFamily: "Exo-Bold",
+    fontWeight: 'bold',
+    fontFamily: 'Exo-Bold',
   },
   signUpRedirect: {
     fontSize: 14,
-    textAlign: "center",
+    textAlign: 'center',
     marginTop: 20,
-    color: "#666",
-    fontFamily: "Exo-Regular",
+    color: '#666',
+    fontFamily: 'Exo-Regular',
   },
   link: {
-    color: "#3470E4",
-    fontWeight: "bold",
-    textDecorationLine: "underline",
+    color: '#3470E4',
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
   },
 });

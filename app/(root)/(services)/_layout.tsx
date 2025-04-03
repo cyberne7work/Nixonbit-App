@@ -1,5 +1,5 @@
-import { Stack } from "expo-router";
-import "react-native-reanimated";
+import { Stack } from 'expo-router';
+import 'react-native-reanimated';
 
 export default function AuthLayout() {
   return (
@@ -12,241 +12,253 @@ export default function AuthLayout() {
         options={{
           headerShown: false,
         }}
-        name='servicelist-screen'
+        name="servicelist-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='servicelist-detail-screen'
+        name="servicelist-detail-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='services'
+        name="services"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='lost-and-found-screen'
+        name="lost-and-found-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='add-lost-and-found-screen'
+        name="add-lost-and-found-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='emergency-alert-screen'
+        name="emergency-alert-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='incident-reporting-screen'
+        name="incident-reporting-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='incident-form-screen'
+        name="incident-form-screen"
+      />
+      {/* <Stack.Screen
+        options={{
+          headerShown: false,
+        }}
+        name="incident-details-screen"
+      /> */}
+      <Stack.Screen
+        options={{
+          headerShown: false,
+        }}
+        name="transport-info"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='incident-details-screen'
+        name="transport-details-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='transport-info'
+        name="weather-update-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='transport-details-screen'
+        name="waste-management-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='weather-update-screen'
+        name="job-listing-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='waste-management-screen'
+        name="explore-detailed-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='job-listing-screen'
+        name="medical-assistance-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='explore-detailed-screen'
+        name="medical-assistance-detailed-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='medical-assistance-screen'
+        name="taxi-services-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='medical-assistance-detailed-screen'
+        name="taxi-services-detailed-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='taxi-services-screen'
+        name="community-watch-detailed-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='taxi-services-detailed-screen'
+        name="community-watch-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='community-watch-detailed-screen'
+        name="public-places-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='community-watch-screen'
+        name="public-places-detailed-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='public-places-screen'
+        name="event-calendar-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='public-places-detailed-screen'
+        name="event-calendar-detailed-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='event-calendar-screen'
+        name="accessibility-options-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='event-calendar-detailed-screen'
+        name="accessibility-options-detailed-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='accessibility-options-screen'
+        name="fitness-centers-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='accessibility-options-detailed-screen'
+        name="fitness-centers-detailed-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='fitness-centers-screen'
+        name="pet-services-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='fitness-centers-detailed-screen'
+        name="pet-services-detailed-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='pet-services-screen'
+        name="volunteer-opportunities-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='pet-services-detailed-screen'
+        name="volunteer-opportunities-detailed-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='volunteer-opportunities-screen'
+        name="shopping-deals-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='volunteer-opportunities-detailed-screen'
+        name="shopping-deals-detailed-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='shopping-deals-screen'
+        name="news-list-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='shopping-deals-detailed-screen'
+        name="news-detailed-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='news-list-screen'
+        name="notice-detailed-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='news-detailed-screen'
+        name="notice-list-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='notice-detailed-screen'
+        name="add-news-screen"
       />
       <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='notice-list-screen'
+        name="issue-detail-screen"
       />
-            <Stack.Screen
+      <Stack.Screen
         options={{
           headerShown: false,
         }}
-        name='add-news-screen'
+        name="lost-and-found-detail-screen"
       />
     </Stack>
   );
