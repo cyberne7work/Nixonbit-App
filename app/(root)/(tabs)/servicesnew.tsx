@@ -31,15 +31,15 @@ const servicesData = [
     category: "Safety & Security",
     navigation: "/(services)/incident-reporting-screen",
   },
-  {
-    id: "4",
-    name: "Community Watch",
-    iconName: "groups",
-    description:
-      "Share and access verified safety information within your community for a collective security network.",
-    category: "Safety & Security",
-    navigation: "/(services)/community-watch-screen",
-  },
+  // {
+  //   id: "4",
+  //   name: "Community Watch",
+  //   iconName: "groups",
+  //   description:
+  //     "Share and access verified safety information within your community for a collective security network.",
+  //   category: "Safety & Security",
+  //   navigation: "/(services)/community-watch-screen",
+  // },
   {
     id: "5",
     name: "Local Directory",
@@ -164,19 +164,19 @@ const servicesData = [
   //   category: "Community Services",
   //   navigation: "/(services)/volunteer-opportunities-screen",
   // },
-  {
-    id: "20",
-    name: "Shopping Deals",
-    iconName: "shopping-cart",
-    description:
-      "Discover discounts and offers from local stores and shopping malls.",
-    category: "Retail",
-    navigation: "/(services)/shopping-deals-screen",
-  },
+  // {
+  //   id: "20",
+  //   name: "Shopping Deals",
+  //   iconName: "shopping-cart",
+  //   description:
+  //     "Discover discounts and offers from local stores and shopping malls.",
+  //   category: "Retail",
+  //   navigation: "/(services)/shopping-deals-screen",
+  // },
   {
     id: "21",
     name: "News",
-    iconName: "news",
+    iconName: "newspaper",
     description:
       "Discover discounts and offers from local stores and shopping malls.",
     category: "Retail",
@@ -185,7 +185,7 @@ const servicesData = [
   {
     id: "22",
     name: "Notices",
-    iconName: "notice",
+    iconName: "circle-notifications",
     description:
       "Discover discounts and offers from local stores and shopping malls.",
     category: "Retail",
