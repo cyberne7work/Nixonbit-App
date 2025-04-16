@@ -399,7 +399,7 @@ export default function HomeScreen() {
             </View>
 
             {/* Advertisements Section */}
-            <View>
+            {/* <View>
               <Text style={styles.header}>Advertisements</Text>
               <FlatList
                 horizontal
@@ -430,10 +430,10 @@ export default function HomeScreen() {
                   </Text>
                 }
               />
-            </View>
+            </View> */}
 
             {/* News Section */}
-            <View>
+            {/* <View>
               <View style={styles.headerButton}>
                 <Text style={styles.header}>Latest News</Text>
                 <TouchableOpacity
@@ -476,7 +476,7 @@ export default function HomeScreen() {
                   <Text style={styles.emptyText}>No news available</Text>
                 }
               />
-            </View>
+            </View> */}
 
             {/* Trending in City Section */}
             <View>

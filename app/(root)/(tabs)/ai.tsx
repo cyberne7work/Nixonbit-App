@@ -32,8 +32,8 @@ export default function Ai() {
   return (
     <KeyboardAvoidingView
       style={styles.keyboardAvoidingView}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? -50 : -50} // Adjust this value to change the space for Android
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? -50 : -50} // Adjust this value to change the space for Android
     >
       <SafeAreaView style={styles.container}>
         <View style={styles.headerContainer}>
@@ -51,12 +51,14 @@ export default function Ai() {
             source={require("../../../assets/images/nixonbiticon.png")}
             style={{ width: 300, height: 200, marginBottom: 10 }}
           /> */}
-             <Image
-                  source={require("../../../assets/images/nixonbiticon.png")}
-                  style={styles.logo}
-                />
+          <Image
+            source={require('../../../assets/images/nixonbiticon.png')}
+            style={styles.logo}
+          />
           <Text style={styles.mainText}>
-            Hi User, I am JARVIS, Your personal AI assistant{" "}
+            Hi User, I am your personal support assistant. I am here to help you
+            with any questions or concerns you may have. Just type your message
+            and I will do my best to assist you.
           </Text>
         </View>
 
@@ -71,7 +73,7 @@ export default function Ai() {
                 value={message}
                 placeholder="Type your message here"
                 multiline={true}
-                placeholderTextColor={"#002045"}
+                placeholderTextColor={'#002045'}
               />
               <TouchableOpacity style={styles.inputButton} onPress={handleSend}>
                 <MaterialIcons name="send" size={24} color="#3470E4" />

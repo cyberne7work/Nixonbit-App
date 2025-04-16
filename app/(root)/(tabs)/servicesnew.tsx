@@ -173,15 +173,15 @@ const servicesData = [
   //   category: "Retail",
   //   navigation: "/(services)/shopping-deals-screen",
   // },
-  {
-    id: "21",
-    name: "News",
-    iconName: "newspaper",
-    description:
-      "Discover discounts and offers from local stores and shopping malls.",
-    category: "Retail",
-    navigation: "/(services)/news-list-screen",
-  },
+  // {
+  //   id: "21",
+  //   name: "News",
+  //   iconName: "newspaper",
+  //   description:
+  //     "Discover discounts and offers from local stores and shopping malls.",
+  //   category: "Retail",
+  //   navigation: "/(services)/news-list-screen",
+  // },
   {
     id: "22",
     name: "Notices",
