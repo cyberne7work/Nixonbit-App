@@ -13,7 +13,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { CustomTextInput } from '@/components/CustomTextInput';
 import { useRouter, useFocusEffect } from 'expo-router'; // Add useFocusEffect
 import LostAndFoundItemCard from '@/components/LostAndFoundItemCard';
-import { useAuth } from '@clerk/clerk-expo';
+import { useAuth, useUser } from '@clerk/clerk-expo';
 import { apiRequest } from '@/utils/api';
 
 export default function LostAndFoundScreen() {
@@ -22,18 +22,28 @@ export default function LostAndFoundScreen() {
   const [searchValue, setSearchValue] = useState('');
   const router = useRouter();
   const { getToken } = useAuth();
+  const { user } = useUser();
 
   // Fetch items from API
   const fetchItems = async () => {
     try {
-      setIsLoading(true);
-      const token = await getToken();
-      const response = await apiRequest('/lost-and-found', 'GET', null, token);
-      if (response.success) {
-        console.log(response.data);
-        setItems(response.data.items);
+      if (user) {
+        setIsLoading(true);
+        const token = await getToken();
+        const response = await apiRequest(
+          '/lost-and-found',
+          'GET',
+          null,
+          token
+        );
+        if (response.success) {
+          console.log(response.data);
+          setItems(response.data.items);
+        } else {
+          throw new Error(response.message || 'Failed to fetch items');
+        }
       } else {
-        throw new Error(response.message || 'Failed to fetch items');
+        setItems([]);
       }
     } catch (error) {
       console.error('Error fetching items:', error);
@@ -48,8 +58,13 @@ export default function LostAndFoundScreen() {
     try {
       setIsLoading(true);
       const token = await getToken();
-      const response = await apiRequest(`/lost-and-found/${id}`, 'DELETE', null, token);
-      
+      const response = await apiRequest(
+        `/lost-and-found/${id}`,
+        'DELETE',
+        null,
+        token
+      );
+
       if (response.success) {
         setItems(items.filter((item) => item.id !== id));
         Alert.alert('Success', 'Item deleted successfully');
@@ -86,7 +101,11 @@ export default function LostAndFoundScreen() {
           'Are you sure you want to delete this item?',
           [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Delete', onPress: () => deleteItem(id), style: 'destructive' },
+            {
+              text: 'Delete',
+              onPress: () => deleteItem(id),
+              style: 'destructive',
+            },
           ]
         );
       }}
@@ -144,9 +163,22 @@ export default function LostAndFoundScreen() {
       {/* Add Item Button */}
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() =>
-          router.push('/(root)/(services)/add-lost-and-found-item')
-        }
+        onPress={() => {
+          if (user) {
+            router.push('/(root)/(services)/add-lost-and-found-item');
+          } else {
+            Alert.alert(
+              'Login Required',
+              'Please login/signup to add emergency contacts.',
+              [
+                {
+                  text: 'OK',
+                  onPress: () => router.push('/(root)/(auth)/signin'),
+                },
+              ]
+            );
+          }
+        }}
         disabled={isLoading}
       >
         <MaterialIcons name="add" size={30} color="#fff" />

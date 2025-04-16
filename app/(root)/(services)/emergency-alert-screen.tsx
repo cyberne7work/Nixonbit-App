@@ -18,7 +18,7 @@ import * as Linking from "expo-linking";
 import { router } from "expo-router";
 import { CustomTextInput } from "@/components/CustomTextInput";
 import * as SMS from "expo-sms";
-import { useAuth } from '@clerk/clerk-expo';
+import { useAuth,useUser } from '@clerk/clerk-expo';
 import { apiRequest } from "@/utils/api";
 
 // Define the type for emergency contacts
@@ -31,6 +31,8 @@ interface EmergencyContact {
 
 export default function EmergencyAlertScreen() {
   const { getToken } = useAuth();
+  const { user } = useUser();
+
   const [location, setLocation] = useState(null);
   const [locationLoading, setLocationLoading] = useState(true); // Separate loading state for location
   const [contactsLoading, setContactsLoading] = useState(true); // Separate loading state for contacts
@@ -103,13 +105,19 @@ export default function EmergencyAlertScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const response = await fetchEmergencyContacts();
-        setContacts(response.data.emergencyContacts.map((contact: any) => ({
-          id: contact.id,
-          contactName: contact.contactName,
-          phoneNumber: contact.phoneNumber,
-          relation: contact.relation,
-        })));
+        const token = await getToken();
+        if(user){
+          const response = await fetchEmergencyContacts();
+          setContacts(response.data.emergencyContacts.map((contact: any) => ({
+            id: contact.id,
+            contactName: contact.contactName,
+            phoneNumber: contact.phoneNumber,
+            relation: contact.relation,
+          })));
+        }else{
+          setContacts([]);
+
+        }
       } catch (error) {
         console.error("Error fetching emergency contacts:", error);
         Alert.alert(
@@ -379,7 +387,20 @@ export default function EmergencyAlertScreen() {
       {/* Add Contact Button */}
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => setIsModalVisible(true)}
+        onPress={() => {
+          if(user){
+            setIsModalVisible(true);
+          }else{
+            Alert.alert(
+              "Login Required",
+              "Please login/signup to add emergency contacts.",
+              [
+                { text: "OK", onPress: () =>     router.push("/(root)/(auth)/signin")
+                }
+              ]
+            );
+          }
+        }}
       >
         <MaterialIcons name="add" size={28} color="#fff" />
       </TouchableOpacity>

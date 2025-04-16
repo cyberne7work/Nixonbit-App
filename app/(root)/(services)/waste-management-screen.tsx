@@ -16,7 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import MapView, { Marker } from 'react-native-maps';
 import { CustomTextInput } from '@/components/CustomTextInput';
-import { useAuth } from '@clerk/clerk-expo';
+import { useAuth,useUser } from '@clerk/clerk-expo';
 import { apiRequest } from '@/utils/api';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -32,6 +32,8 @@ interface WasteReport {
 
 const WasteManagementScreen = () => {
   const { getToken } = useAuth();
+    const { user } = useUser();
+  
   const [location, setLocation] = useState({
     latitude: 37.78825,
     longitude: -122.4324,
@@ -92,17 +94,22 @@ const WasteManagementScreen = () => {
   useEffect(() => {
     (async () => {
       try {
-        const token = await getToken();
-        const response = await apiRequest('/waste', 'GET', null, token);
-        if (response.success) {
-          console.log(response.data.reports);
-          setReportedIssues(response.data.reports);
-        } else {
-          Alert.alert(
-            'Error',
-            response.message || 'Failed to fetch reported issues.'
-          );
+        if(user){
+          const token = await getToken();
+          const response = await apiRequest('/waste', 'GET', null, token);
+          if (response.success) {
+            console.log(response.data.reports);
+            setReportedIssues(response.data.reports);
+          } else {
+            Alert.alert(
+              'Error',
+              response.message || 'Failed to fetch reported issues.'
+            );
+          }
+        }else{
+          setReportedIssues([]);
         }
+
       } catch (error) {
         console.error('Error fetching reported issues:', error);
         Alert.alert('Error', 'Failed to fetch reported issues.');
